@@ -20,7 +20,7 @@
  *
  */
 
-namespace Jumbojett;
+namespace JuliusPC;
 
 /**
  *
@@ -458,7 +458,7 @@ class OpenIDConnectClient
                 'post_logout_redirect_uri' => $redirect];
         }
 
-        $signout_endpoint  .= (strpos($signout_endpoint, '?') === false ? '?' : '&') . http_build_query( $signout_params, null, '&', $this->encType);
+        $signout_endpoint  .= (strpos($signout_endpoint, '?') === false ? '?' : '&') . http_build_query( $signout_params, '', '&', $this->encType);
         $this->redirect($signout_endpoint);
     }
 
