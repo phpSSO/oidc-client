@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 * it is now possible to disable upgrading from HTTP to HTTPS for development purposes by calling `setHttpUpgradeInsecureRequests(false)`
 
+### changed
+* `getRedirectURL()` will not log a warning for PHP 7.1+
+
 ## [0.9.2]
 
 ### Added
