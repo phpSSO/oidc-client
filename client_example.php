@@ -18,12 +18,17 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations
  * under the License.
+ * 
+ * ------------------
+ * 
+ * This file was changed by Julius Cordes, 2021.
+ * For details see git history.
  *
  */
 
 require __DIR__ . '/vendor/autoload.php';
 
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient(
     'http://myproviderURL.com/',

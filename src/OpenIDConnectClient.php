@@ -18,6 +18,11 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
+ * ------------------
+ * 
+ * This file was changed by Julius Cordes, 2020-2021.
+ * For details see git history.
+ * 
  */
 
 namespace JuliusPC;

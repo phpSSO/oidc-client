@@ -4,7 +4,7 @@ A simple library that allows an application to authenticate a user through the b
 This library hopes to encourage OpenID Connect use by making it simple enough for a developer with little knowledge of
 the OpenID Connect protocol to setup authentication.
 
-A special thanks goes to Justin Richer and Amanda Anganes for their help and support of the protocol.
+This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumbojett/OpenID-Connect-PHP), which seems to be discontinued.
 
 # Requirements #
  1. PHP 5.4 or greater
@@ -14,7 +14,7 @@ A special thanks goes to Justin Richer and Amanda Anganes for their help and sup
 ## Install ##
  1. Install library using composer
 ```
-composer require jumbojett/openid-connect-php
+composer require juliuspc/openid-connect-php
 ```
  2. Include composer autoloader
 ```php
@@ -24,7 +24,7 @@ require __DIR__ . '/vendor/autoload.php';
 ## Example 1: Basic Client ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.provider.com',
                                 'ClientIDHere',
@@ -40,7 +40,7 @@ $name = $oidc->requestUserInfo('given_name');
 ## Example 2: Dynamic Registration ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient("https://id.provider.com");
 
@@ -63,7 +63,7 @@ $oidc->setCertPath("/path/to/my.cert");
 ## Example 4: Request Client Credentials Token ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.provider.com',
                                 'ClientIDHere',
@@ -79,7 +79,7 @@ $clientCredentialsToken = $oidc->requestClientCredentialsToken()->access_token;
 ## Example 5: Request Resource Owners Token (with client auth) ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.provider.com',
                                 'ClientIDHere',
@@ -99,7 +99,7 @@ $token = $oidc->requestResourceOwnerToken(TRUE)->access_token;
 ## Example 6: Basic client for implicit flow e.g. with Azure AD B2C (see http://openid.net/specs/openid-connect-core-1_0.html#ImplicitFlowAuth) ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.provider.com',
                                 'ClientIDHere',
@@ -117,7 +117,7 @@ $sub = $oidc->getVerifiedClaims('sub');
 ## Example 7: Introspection of an access token (see https://tools.ietf.org/html/rfc7662) ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.provider.com',
                                 'ClientIDHere',
@@ -132,7 +132,7 @@ if (!$data->active) {
 ## Example 8: PKCE Client ##
 
 ```php
-use Jumbojett\OpenIDConnectClient;
+use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.provider.com',
                                 'ClientIDHere',
