@@ -6,6 +6,16 @@ the OpenID Connect protocol to setup authentication.
 
 This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumbojett/OpenID-Connect-PHP), which seems to be discontinued. For progress being made on fixing bugs of the original library [see this wiki page](https://github.com/JuliusPC/OpenID-Connect-PHP/wiki/Progress-on-fixing-upstrem-issues).
 
+# Supported Specifications #
+
+- [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)
+- [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html)
+- [OpenID Connect RP-Initiated Logout 1.0 - draft 01](https://openid.net/specs/openid-connect-rpinitiated-1_0.html)
+- [OpenID Connect Dynamic Client Registration 1.0](https://openid.net/specs/openid-connect-registration-1_0.html)
+- [RFC 6749: The OAuth 2.0 Authorization Framework](https://tools.ietf.org/html/rfc6749)
+- [RFC 7636: Proof Key for Code Exchange by OAuth Public Clients](https://tools.ietf.org/html/rfc7636)
+- [RFC 7662: OAuth 2.0 Token Introspection](https://tools.ietf.org/html/rfc7662)
+
 # Requirements #
  1. PHP 5.4 or greater
  2. CURL extension
