@@ -807,10 +807,11 @@ class OpenIDConnectClient
      * Requests Access token with refresh token
      *
      * @param string $refresh_token
+     * @param bool $sendScopes optional controls whether scopes are sent in the request, defaults to true
      * @return mixed
      * @throws OpenIDConnectClientException
      */
-    public function refreshToken($refresh_token) {
+    public function refreshToken($refresh_token, $sendScopes = true) {
         $token_endpoint = $this->getProviderConfigValue('token_endpoint');
 
         $grant_type = 'refresh_token';
@@ -821,6 +822,10 @@ class OpenIDConnectClient
             'client_id' => $this->clientID,
             'client_secret' => $this->clientSecret,
         ];
+
+        if($sendScopes) {
+            $token_params['scopes'] = implode(' ', $this->scopes);
+        }
 
         // Convert token params to string format
         $token_params = http_build_query($token_params, '', '&', $this->enc_type);

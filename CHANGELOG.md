@@ -4,12 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [master]
+
+### Added
+* Added scope parameter to refresh token request, this can be disabled by setting second parameter of `refreshToken()` to false
+
 ## [1.0.0]
 
 ### Added
 * it is now possible to disable upgrading from HTTP to HTTPS for development purposes by calling `setHttpUpgradeInsecureRequests(false)`
 
-### changed
+### Changed
 * `getRedirectURL()` will not log a warning for PHP 7.1+
 
 ## [0.9.2]
