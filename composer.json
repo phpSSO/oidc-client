@@ -1,6 +1,7 @@
 {
     "name": "juliuspc/openid-connect-php",
     "description": "OpenID Connect client",
+    "keywords": ["OpenID Connect", "OIDC", "client", "OAuth 2", "SSO", "RFC6749", "RFC7009", "RFC7636", "RFC7662"],
     "license": "Apache-2.0",
     "require": {
         "php": ">=5.4",
