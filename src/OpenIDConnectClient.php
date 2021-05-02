@@ -718,7 +718,9 @@ class OpenIDConnectClient
     }
 
     /**
-     * Requests a client credentials token
+     * Requests an access token with the client credentials grant. This grant is not covered by OpenID Connect.
+     * 
+     * @link https://tools.ietf.org/html/rfc6749#section-4.4
      *
      * @throws OpenIDConnectClientException
      */
@@ -743,9 +745,11 @@ class OpenIDConnectClient
     }
 
     /**
-     * Requests a resource owner token
-     * (Defined in https://tools.ietf.org/html/rfc6749#section-4.3)
+     * Requests an access token with the Resource Owner Password Credentials Grant. You may also obtain a refresh token.
+     * This grant will be obsoleted with the upcoming OAuth 2.1 standard. This grant is not covered by OpenID Connect.
      *
+     * @link https://tools.ietf.org/html/rfc6749#section-4.3
+     * 
      * @param boolean $bClientAuth Indicates that the Client ID and Secret be used for client authentication
      * @return mixed
      * @throws OpenIDConnectClientException
@@ -1375,6 +1379,8 @@ class OpenIDConnectClient
     }
 
     /**
+     * Enables the implicit flow. In most cases you only need the authorization code grant, which is enabled by default.
+     * 
      * @param bool $allowImplicitFlow
      */
     public function setAllowImplicitFlow($allowImplicitFlow) {
@@ -1456,7 +1462,8 @@ class OpenIDConnectClient
 
     /**
      * Introspect a given token - either access token or refresh token.
-     * @see https://tools.ietf.org/html/rfc7662
+     * 
+     * @link https://tools.ietf.org/html/rfc7662
      *
      * @param string $token
      * @param string $token_type_hint
