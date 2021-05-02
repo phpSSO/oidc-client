@@ -687,7 +687,6 @@ class OpenIDConnectClient
         // If the OP supports Proof Key for Code Exchange (PKCE) and it is enabled
         if (!$this->unsafeDisablePkce
             && !empty($this->getCodeChallengeMethod())
-            && in_array($this->getCodeChallengeMethod(), $this->getProviderConfigValue('code_challenge_methods_supported'))
         ) {
             $codeVerifier = \bin2hex(\random_bytes(64));
             $this->setCodeVerifier($codeVerifier);
@@ -1859,6 +1858,9 @@ class OpenIDConnectClient
     }
 
     /**
+     * This method allows you to enforce a specific PKCE code challenge method.
+     * Useful in cases where your OP supports PKCE but does not announce it in his discovery document.
+     * 
      * @param string $codeChallengeMethod
      */
     public function setCodeChallengeMethod($codeChallengeMethod) {
@@ -1866,6 +1868,10 @@ class OpenIDConnectClient
     }
 
     /**
+     * This method allows you to disable nonce setting and checking.
+     * Some OPs seem to have problems with nonces. This behaviour is not compliant to the OIDC spec.
+     * Disable it only in case you know what you are doing.
+     * 
      * @param bool $disableNonce
      */
     public function setUnsafeDisableNonce($disableNonce) {
