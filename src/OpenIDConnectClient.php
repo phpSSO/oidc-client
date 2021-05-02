@@ -311,6 +311,16 @@ class OpenIDConnectClient
      */
     public function authenticate() {
 
+        // protect against mix-up attacks
+        // experimental feature, see https://tools.ietf.org/html/draft-ietf-oauth-iss-auth-resp-00
+        if((isset($_REQUEST['error']) || isset($_REQUEST['code']) || isset($_REQUEST['id_token']))
+            && isset($_REQUEST['iss'])
+            && $this->getProviderConfigValue('authorization_response_iss_parameter_supported', false)
+            && !$this->issuerValidator->__invoke($_REQUEST['iss'])
+        ) {
+                throw new OpenIDConnectClientException('Error: validation of iss response parameter failed');
+        }
+
         // Do a preemptive check to see if the provider has thrown an error from a previous redirect
         if (isset($_REQUEST['error'])) {
             $desc = isset($_REQUEST['error_description']) ? ' Description: ' . $_REQUEST['error_description'] : '';
