@@ -252,6 +252,16 @@ class OpenIDConnectClient
     private $pkceAlgs = ['S256' => 'sha256', 'plain' => false];
 
     /**
+     * @var bool true if PKCE is disabled
+     */
+    private $unsafeDisablePkce = false;
+
+    /**
+     * @var bool true if nonce is disabled
+     */
+    private $unsafeDisableNonce = false;
+
+    /**
      * @param $provider_url string optional
      *
      * @param $client_id string optional
@@ -501,7 +511,7 @@ class OpenIDConnectClient
      * @param string $param
      * @param string $default optional
      * @throws OpenIDConnectClientException
-     * @return string
+     * @return mixed
      *
      */
     protected function getProviderConfigValue($param, $default = null) {
@@ -598,7 +608,10 @@ class OpenIDConnectClient
          * Support of 'ProxyReverse' configurations.
          */
 
-        if ($this->httpUpgradeInsecureRequests && isset($_SERVER['HTTP_UPGRADE_INSECURE_REQUESTS']) && ($_SERVER['HTTP_UPGRADE_INSECURE_REQUESTS'] === '1')) {
+        if ($this->httpUpgradeInsecureRequests
+            && isset($_SERVER['HTTP_UPGRADE_INSECURE_REQUESTS'])
+            && ($_SERVER['HTTP_UPGRADE_INSECURE_REQUESTS'] === '1')
+        ) {
             $protocol = 'https';
         } else {
             $protocol = @$_SERVER['HTTP_X_FORWARDED_PROTO']
@@ -649,10 +662,6 @@ class OpenIDConnectClient
         $auth_endpoint = $this->getProviderConfigValue('authorization_endpoint');
         $response_type = 'code';
 
-        // Generate and store a nonce in the session
-        // The nonce is an arbitrary value
-        $nonce = $this->setNonce($this->generateRandString());
-
         // State essentially acts as a session key for OIDC
         $state = $this->setState($this->generateRandString());
 
@@ -660,24 +669,27 @@ class OpenIDConnectClient
             'response_type' => $response_type,
             'redirect_uri' => $this->getRedirectURL(),
             'client_id' => $this->clientID,
-            'nonce' => $nonce,
             'state' => $state,
-            'scope' => 'openid'
+            'scope' => implode(' ', array_merge($this->scopes, ['openid']))
         ]);
 
-        // If the client has been registered with additional scopes
-        if (count($this->scopes) > 0) {
-            $auth_params = array_merge($auth_params, ['scope' => implode(' ', array_merge($this->scopes, ['openid']))]);
-        }
+        // Generate and store a nonce in the session
+        // The nonce is an arbitrary value
+        if(!$this->unsafeDisableNonce) {
+            $auth_params['nonce'] = $this->setNonce($this->generateRandString());
+         }
 
         // If the client has been registered with additional response types
         if (count($this->responseTypes) > 0) {
             $auth_params = array_merge($auth_params, ['response_type' => implode(' ', $this->responseTypes)]);
         }
 
-        // If the client supports Proof Key for Code Exchange (PKCE)
-        if (!empty($this->getCodeChallengeMethod()) && in_array($this->getCodeChallengeMethod(), $this->getProviderConfigValue('code_challenge_methods_supported'))) {
-            $codeVerifier = bin2hex(random_bytes(64));
+        // If the OP supports Proof Key for Code Exchange (PKCE) and it is enabled
+        if (!$this->unsafeDisablePkce
+            && !empty($this->getCodeChallengeMethod())
+            && in_array($this->getCodeChallengeMethod(), $this->getProviderConfigValue('code_challenge_methods_supported'))
+        ) {
+            $codeVerifier = \bin2hex(\random_bytes(64));
             $this->setCodeVerifier($codeVerifier);
             if (!empty($this->pkceAlgs[$this->getCodeChallengeMethod()])) {
                 $codeChallenge = rtrim(strtr(base64_encode(hash($this->pkceAlgs[$this->getCodeChallengeMethod()], $codeVerifier, true)), '+/', '-_'), '=');
@@ -786,7 +798,10 @@ class OpenIDConnectClient
 	        unset($token_params['client_id']);
         }
 
-        if (!empty($this->getCodeChallengeMethod()) && !empty($this->getCodeVerifier())) {
+        if (!$this->unsafeDisablePkce
+            && !empty($this->getCodeChallengeMethod())
+            && !empty($this->getCodeVerifier())
+        ) {
             $token_params = array_merge($token_params, [
                 'code_verifier' => $this->getCodeVerifier()
             ]);
@@ -1017,7 +1032,7 @@ class OpenIDConnectClient
         }
         return (($this->issuerValidator->__invoke($claims->iss))
             && (($claims->aud === $this->clientID) || in_array($this->clientID, $claims->aud, true))
-            && ($claims->nonce === $this->getNonce())
+            && ($this->unsafeDisableNonce || $claims->nonce === $this->getNonce())
             && ( !isset($claims->exp) || ((gettype($claims->exp) === 'integer') && ($claims->exp >= time() - $this->leeway)))
             && ( !isset($claims->nbf) || ((gettype($claims->nbf) === 'integer') && ($claims->nbf <= time() + $this->leeway)))
             && ( !isset($claims->at_hash) || $claims->at_hash === $expected_at_hash )
@@ -1829,7 +1844,17 @@ class OpenIDConnectClient
      * @return string
      */
     public function getCodeChallengeMethod() {
-        return $this->codeChallengeMethod;
+        $method = $this->codeChallengeMethod;
+
+        if(empty($method)) {
+            if(in_array('S256', $this->getProviderConfigValue('code_challenge_methods_supported'))) {
+                $method = 'S256';
+            } elseif(in_array('plain', $this->getProviderConfigValue('code_challenge_methods_supported'))) {
+                $method = 'plain';
+            }
+        }
+            
+        return $method;
     }
 
     /**
@@ -1837,5 +1862,26 @@ class OpenIDConnectClient
      */
     public function setCodeChallengeMethod($codeChallengeMethod) {
         $this->codeChallengeMethod = $codeChallengeMethod;
+    }
+
+    /**
+     * @param bool $disableNonce
+     */
+    public function setUnsafeDisableNonce($disableNonce) {
+        $this->unsafeDisableNonce = $disableNonce;
+    }
+
+    /**
+     * @param bool $disableNonce true to disable use of nonce
+     */
+    public function getUnsafeDisableNonce() {
+        return $this->unsafeDisableNonce;
+    }
+
+    /**
+     * @param bool $disablePkce true to disable use of PKCE
+     */
+    public function setUnsafeDisablePkce() {
+        return $this->unsafeDisablePkce;
     }
 }
