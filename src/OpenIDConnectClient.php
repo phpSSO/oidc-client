@@ -1032,7 +1032,8 @@ class OpenIDConnectClient
         return (($this->issuerValidator->__invoke($claims->iss))
             && (($claims->aud === $this->clientID) || in_array($this->clientID, $claims->aud, true))
             && ($this->unsafeDisableNonce || $claims->nonce === $this->getNonce())
-            && ( !isset($claims->exp) || ((gettype($claims->exp) === 'integer') && ($claims->exp >= time() - $this->leeway)))
+            && ( isset($claims->exp) && ((gettype($claims->exp) === 'integer') && ($claims->exp >= time() - $this->leeway)))
+            && ( isset($claims->iat) && ((gettype($claims->iat) === 'integer') && ($claims->iat <= time() + $this->leeway)))
             && ( !isset($claims->nbf) || ((gettype($claims->nbf) === 'integer') && ($claims->nbf <= time() + $this->leeway)))
             && ( !isset($claims->at_hash) || $claims->at_hash === $expected_at_hash )
         );
