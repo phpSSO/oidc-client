@@ -1847,9 +1847,10 @@ class OpenIDConnectClient
         $method = $this->codeChallengeMethod;
 
         if(empty($method)) {
-            if(in_array('S256', $this->getProviderConfigValue('code_challenge_methods_supported'))) {
+            $methods = $this->getProviderConfigValue('code_challenge_methods_supported', []);
+            if(in_array('S256', $methods)) {
                 $method = 'S256';
-            } elseif(in_array('plain', $this->getProviderConfigValue('code_challenge_methods_supported'))) {
+            } elseif(in_array('plain', $methods)) {
                 $method = 'plain';
             }
         }
