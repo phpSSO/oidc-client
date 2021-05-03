@@ -4,10 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [master]
+## [1.1.0]
 
 ### Added
 * Added scope parameter to refresh token request, this can be disabled by setting second parameter of `refreshToken()` to false
+* automatic use of PKCE if OpenID provider signals support for this
+* PKCE and nonce can be optional disabled, if really needed
+
+### Changed
+* PKCE can be used with confidential clients
+* id token validation is more compliant to the OIDC standard
+* improved README and documentation inside code
+* fixed typo in variable (this resulted in an PHP notice Undefined property)
 
 ## [1.0.0]
 
