@@ -8,12 +8,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 * Added scope parameter to refresh token request, this can be disabled by setting second parameter of `refreshToken()` to false
-* automatic use of PKCE if OpenID provider signals support for this
+* automatic use of PKCE if OpenID provider signals support for this #9
 * PKCE and nonce can be optional disabled, if really needed
+* added experimental protection against mix-up attacks #14
 
 ### Changed
-* PKCE can be used with confidential clients
-* id token validation is more compliant to the OIDC standard
+* PKCE can be used with confidential clients #15
+* id token validation is more compliant to the OIDC standard, part of #12
 * improved README and documentation inside code
 * fixed typo in variable (this resulted in an PHP notice Undefined property)
 
