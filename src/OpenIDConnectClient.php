@@ -698,7 +698,7 @@ class OpenIDConnectClient
         // PKCE will only used in pure authorization code flow and hybrid flow
         if (!$this->unsafeDisablePkce
             && !empty($this->getCodeChallengeMethod())
-            && count(array_diff($this->responseTypes, ['token', 'id_token'])) > 0
+            && (empty($this->responseTypes) || count(array_diff($this->responseTypes, ['token', 'id_token'])) > 0)
         ) {
             $codeVerifier = \bin2hex(\random_bytes(64));
             $this->setCodeVerifier($codeVerifier);
