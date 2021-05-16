@@ -728,6 +728,7 @@ class OpenIDConnectClient
      */
     public function requestClientCredentialsToken() {
         $token_endpoint = $this->getProviderConfigValue('token_endpoint');
+        $token_endpoint_auth_methods_supported = $this->getProviderConfigValue('token_endpoint_auth_methods_supported', ['client_secret_basic']);
 
         $headers = [];
 
@@ -739,6 +740,13 @@ class OpenIDConnectClient
             'client_secret' => $this->clientSecret,
             'scope'         => implode(' ', $this->scopes)
         ];
+
+        // Consider Basic authentication if provider config is set this way
+        if (in_array('client_secret_basic', $token_endpoint_auth_methods_supported, true)) {
+            $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret))];
+            unset($post_data['client_secret']);
+	        unset($post_data['client_id']);
+        }
 
         // Convert token params to string format
         $post_params = http_build_query($post_data, '', '&', $this->encType);
@@ -840,6 +848,9 @@ class OpenIDConnectClient
      */
     public function refreshToken($refresh_token, $sendScopes = true) {
         $token_endpoint = $this->getProviderConfigValue('token_endpoint');
+        $token_endpoint_auth_methods_supported = $this->getProviderConfigValue('token_endpoint_auth_methods_supported', ['client_secret_basic']);
+
+        $headers = [];
 
         $grant_type = 'refresh_token';
 
@@ -854,10 +865,17 @@ class OpenIDConnectClient
             $token_params['scopes'] = implode(' ', $this->scopes);
         }
 
+        // Consider Basic authentication if provider config is set this way
+        if (in_array('client_secret_basic', $token_endpoint_auth_methods_supported, true)) {
+            $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret))];
+            unset($token_params['client_secret']);
+	        unset($token_params['client_id']);
+        }
+
         // Convert token params to string format
         $token_params = http_build_query($token_params, '', '&', $this->encType);
 
-        $json = json_decode($this->fetchURL($token_endpoint, $token_params));
+        $json = json_decode($this->fetchURL($token_endpoint, $token_params, $headers));
 
         if (isset($json->access_token)) {
             $this->accessToken = $json->access_token;
