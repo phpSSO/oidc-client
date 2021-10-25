@@ -20,7 +20,7 @@ This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumb
 - [Draft: OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://tools.ietf.org/html/draft-ietf-oauth-iss-auth-resp-00)
 
 # Requirements #
- 1. PHP 7.2.5 or greater
+ 1. PHP 7.3 or greater
  2. CURL extension
  3. JSON extension
 
@@ -177,7 +177,19 @@ Note: This is **not** recommended on production systems.
 $oidc->setVerifyPeer(false);
 ```
 
-### Todo ###
+## Unit Tests
+
+Run the unit tests:
+
+`./vendor/bin/phpunit tests`
+
+Generate a code coverage report (open html/index.html in a browser to view results):
+
+`XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-html html tests/`
+
+Note: You may need to install Xdebug to make this work.
+
+## Todo ##
 - Dynamic registration does not support registration auth tokens and endpoints
 - improving tests and test coverage of this library
 

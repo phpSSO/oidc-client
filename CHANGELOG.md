@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [master]
 
 ### Removed
-* support for PHP versions <7.2.5
-* `setHttpUpgradeInsecureRequests(false)` [#17](https://github.com/JuliusPC/OpenID-Connect-PHP/issues/17)
-* `setVerifyHost()` and `getVerifyHost()` due to use of Guzzle instead of curl directly
+* dropped support for PHP versions <7.3
+* removed method `setHttpUpgradeInsecureRequests(false)` [#17](https://github.com/JuliusPC/OpenID-Connect-PHP/issues/17)
+* removed methods `setVerifyHost()` and `getVerifyHost()` due to use of Guzzle instead of curl directly
 
+### Added
+* more unit tests
 
 ## [1.1.3]
 
