@@ -618,16 +618,9 @@ class OpenIDConnectClient
          * Support of 'ProxyReverse' configurations.
          */
 
-        if ($this->httpUpgradeInsecureRequests
-            && isset($_SERVER['HTTP_UPGRADE_INSECURE_REQUESTS'])
-            && ($_SERVER['HTTP_UPGRADE_INSECURE_REQUESTS'] === '1')
-        ) {
-            $protocol = 'https';
-        } else {
-            $protocol = @$_SERVER['HTTP_X_FORWARDED_PROTO']
-                ?: @$_SERVER['REQUEST_SCHEME']
-                    ?: ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http');
-        }
+        $protocol = @$_SERVER['HTTP_X_FORWARDED_PROTO']
+            ?: @$_SERVER['REQUEST_SCHEME']
+                ?: ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http');
 
         $port = @intval($_SERVER['HTTP_X_FORWARDED_PORT'])
             ?: @intval($_SERVER['SERVER_PORT'])
@@ -638,8 +631,8 @@ class OpenIDConnectClient
                 ?: @$_SERVER['SERVER_ADDR'];
 
         $port = (443 === $port) || (80 === $port) ? '' : ':' . $port;
-	    
-	$uriSplit = explode("?", $_SERVER['REQUEST_URI']);
+        
+        $uriSplit = explode("?", $_SERVER['REQUEST_URI']);
 
         return sprintf('%s://%s%s/%s', $protocol, $host, $port, @trim(reset($uriSplit), '/'));
     }
@@ -1357,15 +1350,6 @@ class OpenIDConnectClient
 
 
     /**
-     * Controls whether http header HTTP_UPGRADE_INSECURE_REQUESTS should be considered
-     * defaults to true
-     * @param bool $httpUpgradeInsecureRequests
-     */
-    public function setHttpUpgradeInsecureRequests($httpUpgradeInsecureRequests) {
-        $this->httpUpgradeInsecureRequests = $httpUpgradeInsecureRequests;
-    }
-
-    /**
      * @return bool
      */
     public function getVerifyHost() {
@@ -1377,14 +1361,6 @@ class OpenIDConnectClient
      */
     public function getVerifyPeer() {
         return $this->verifyPeer;
-    }
-
-    /**
-     * @return bool 
-     */
-    public function getHttpUpgradeInsecureRequests()
-    {
-        return $this->httpUpgradeInsecureRequests;
     }
 
     /**
