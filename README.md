@@ -20,7 +20,7 @@ This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumb
 - [Draft: OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://tools.ietf.org/html/draft-ietf-oauth-iss-auth-resp-00)
 
 # Requirements #
- 1. PHP 5.4 or greater
+ 1. PHP 7.2.5 or greater
  2. CURL extension
  3. JSON extension
 
@@ -71,6 +71,7 @@ $client_secret = $oidc->getClientSecret();
 $oidc->setHttpProxy("http://my.proxy.example.net:80/");
 
 // Configure a cert
+// If we omit this, the OS’ default cert bundle will be used
 $oidc->setCertPath("/path/to/my.cert");
 ```
 
@@ -169,18 +170,11 @@ $name = $oidc->requestUserInfo('given_name');
 
 
 ## Development Environments ##
-In some cases you may need to disable SSL security on on your development systems.
-Note: This is not recommended on production systems.
+In some cases you may need to disable TLS certificate validation on on your development systems.
+Note: This is **not** recommended on production systems.
 
 ```php
-$oidc->setVerifyHost(false);
 $oidc->setVerifyPeer(false);
-```
-
-Also, your local system might not support HTTPS, so you might disable uprading to it:
-
-```php
-$oidc->httpUpgradeInsecureRequests(false);
 ```
 
 ### Todo ###

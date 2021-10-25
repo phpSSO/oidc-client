@@ -26,6 +26,7 @@
  */
 
 namespace JuliusPC;
+require __DIR__ . '/../vendor/autoload.php';
 
 /**
  *
@@ -120,6 +121,11 @@ class OpenIDConnectClient
     private $httpProxy;
 
     /**
+     * @var \GuzzleHttp\Client HTTP client used to make Requests
+     */
+    private \GuzzleHttp\Client $httpClient;
+
+    /**
      * @var string full system path to the SSL certificate
      */
     private $certPath;
@@ -128,11 +134,6 @@ class OpenIDConnectClient
      * @var bool Verify SSL peer on transactions
      */
     private $verifyPeer = true;
-
-    /**
-     * @var bool Verify peer hostname on transactions
-     */
-    private $verifyHost = true;
 
     /**
      * @var string if we acquire an access token it will be stored here
@@ -640,14 +641,13 @@ class OpenIDConnectClient
     /**
      * Used for arbitrary value generation for nonces and state
      *
-     * @return string
+     * @param int $length Number of random bytes from which the string should be generated.
+     * @return string hex encoded string (length of return is double of parameter $length)
      * @throws OpenIDConnectClientException
      */
-    protected function generateRandString() {
-        // Error and Exception need to be catched in this order, see https://github.com/paragonie/random_compat/blob/master/README.md
-        // random_compat polyfill library should be removed if support for PHP versions < 7 is dropped
+    protected function generateRandString(int $length = 16) {
         try {
-            return \bin2hex(\random_bytes(16));
+            return \bin2hex(\random_bytes($length));
         } catch (\Error $e) {
             throw new OpenIDConnectClientException('Random token generation failed.');
         } catch (\Exception $e) {
@@ -693,7 +693,11 @@ class OpenIDConnectClient
             && !empty($this->getCodeChallengeMethod())
             && (empty($this->responseTypes) || count(array_diff($this->responseTypes, ['token', 'id_token'])) > 0)
         ) {
-            $codeVerifier = \bin2hex(\random_bytes(64));
+            // 64 random bytes make up 128 characters encoded in hex.
+            // RFC 7636 requires the code_verifier to be a random string with a minimum length of 43 characters
+            // and a maximum length of 128 characters.
+            // https://datatracker.ietf.org/doc/html/rfc7636#section-4.1
+            $codeVerifier = $this->generateRandString(64);
             $this->setCodeVerifier($codeVerifier);
             if (!empty($this->pkceAlgs[$this->getCodeChallengeMethod()])) {
                 $codeChallenge = rtrim(strtr(base64_encode(hash($this->pkceAlgs[$this->getCodeChallengeMethod()], $codeVerifier, true)), '+/', '-_'), '=');
@@ -736,7 +740,7 @@ class OpenIDConnectClient
 
         // Consider Basic authentication if provider config is set this way
         if (in_array('client_secret_basic', $token_endpoint_auth_methods_supported, true)) {
-            $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret))];
+            $headers['Authorization'] = 'Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret));
             unset($post_data['client_secret']);
 	        unset($post_data['client_id']);
         }
@@ -809,7 +813,7 @@ class OpenIDConnectClient
 
         // Consider Basic authentication if provider config is set this way
         if (in_array('client_secret_basic', $token_endpoint_auth_methods_supported, true)) {
-            $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret))];
+            $headers['Authorization'] = 'Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret));
             unset($token_params['client_secret']);
 	        unset($token_params['client_id']);
         }
@@ -860,7 +864,7 @@ class OpenIDConnectClient
 
         // Consider Basic authentication if provider config is set this way
         if (in_array('client_secret_basic', $token_endpoint_auth_methods_supported, true)) {
-            $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret))];
+            $headers['Authorization'] = 'Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret));
             unset($token_params['client_secret']);
 	        unset($token_params['client_id']);
         }
@@ -978,13 +982,9 @@ class OpenIDConnectClient
             throw new OpenIDConnectClientException('hash_hmac support unavailable.');
         }
 
-        $expected=hash_hmac($hashtype, $payload, $key, true);
+        $expected = hash_hmac($hashtype, $payload, $key, true);
 
-        if (function_exists('hash_equals')) {
-            return hash_equals($signature, $expected);
-        }
-
-        return self::hashEquals($signature, $expected);
+        return hash_equals($signature, $expected);
     }
 
     /**
@@ -1125,8 +1125,8 @@ class OpenIDConnectClient
 
         //The accessToken has to be sent in the Authorization header.
         // Accept json to indicate response type
-        $headers = ["Authorization: Bearer {$this->accessToken}",
-            'Accept: application/json'];
+        $headers["Authorization"] = "Bearer {$this->accessToken}";
+        $headers['Accept'] = 'application/json';
 
         $user_json = json_decode($this->fetchURL($user_info_endpoint,null,$headers));
         if ($this->getResponseCode() <> 200) {
@@ -1185,16 +1185,13 @@ class OpenIDConnectClient
      * @return mixed
      */
     protected function fetchURL($url, $post_body = null, $headers = []) {
-
-        // OK cool - then let's create a new cURL resource handle
-        $ch = curl_init();
+        $client = $this->getHttpClient();
+        $method = 'GET';
+        $options = [];
 
         // Determine whether this is a GET or POST
         if ($post_body !== null) {
-            // curl_setopt($ch, CURLOPT_POST, 1);
-            // Alows to keep the POST method even after redirect
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_body);
+            $method = 'POST';
 
             // Default content type is form encoded
             $content_type = 'application/x-www-form-urlencoded';
@@ -1205,67 +1202,25 @@ class OpenIDConnectClient
             }
 
             // Add POST-specific headers
-            $headers[] = "Content-Type: {$content_type}";
+            $headers['Content-Type'] = $content_type;
 
+            $options['body'] = $post_body;
+            if(count($headers) > 0) {
+                $options['headers'] = $headers;
+            }
         }
-
-        // If we set some headers include them
-        if(count($headers) > 0) {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        }
-
-        // Set URL to download
-        curl_setopt($ch, CURLOPT_URL, $url);
-
-        if (isset($this->httpProxy)) {
-            curl_setopt($ch, CURLOPT_PROXY, $this->httpProxy);
-        }
-
-        // Include header in result? (0 = yes, 1 = no)
-        curl_setopt($ch, CURLOPT_HEADER, 0);
-
-        // Allows to follow redirect
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-
-        /**
-         * Set cert
-         * Otherwise ignore SSL peer verification
-         */
-        if (isset($this->certPath)) {
-            curl_setopt($ch, CURLOPT_CAINFO, $this->certPath);
-        }
-
-        if($this->verifyHost) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        } else {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        }
-
-        if($this->verifyPeer) {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        } else {
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        }
-
-        // Should cURL return or print out the data? (true = return, false = print)
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        // Timeout in seconds
-        curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeOut);
+        
+        $response = $client->request($method, $url, $options);
 
         // Download the given URL, and return output
-        $output = curl_exec($ch);
+        $output = $response->getBody();
 
         // HTTP Response code from server may be required from subclass
-        $info = curl_getinfo($ch);
-        $this->responseCode = $info['http_code'];
+        $this->responseCode = $response->getStatusCode();
 
-        if ($output === false) {
-            throw new OpenIDConnectClientException('Curl error: (' . curl_errno($ch) . ') ' . curl_error($ch));
+        if ($this->responseCode != 200) {
+            throw new OpenIDConnectClientException('Error (Status Code ' . $this->responseCode . ') fetching resource ' . $url);
         }
-
-        // Close the cURL resource, and free system resources
-        curl_close($ch);
 
         return $output;
     }
@@ -1339,21 +1294,6 @@ class OpenIDConnectClient
      */
     public function setVerifyPeer($verifyPeer) {
         $this->verifyPeer = $verifyPeer;
-    }
-
-    /**
-     * @param bool $verifyHost
-     */
-    public function setVerifyHost($verifyHost) {
-        $this->verifyHost = $verifyHost;
-    }
-
-
-    /**
-     * @return bool
-     */
-    public function getVerifyHost() {
-        return $this->verifyHost;
     }
 
     /**
@@ -1481,8 +1421,8 @@ class OpenIDConnectClient
 
         // Convert token params to string format
         $post_params = http_build_query($post_data, '', '&');
-        $headers = ['Authorization: Basic ' . base64_encode(urlencode($clientId) . ':' . urlencode($clientSecret)),
-            'Accept: application/json'];
+        $headers['Authorization'] = 'Basic ' . base64_encode(urlencode($clientId) . ':' . urlencode($clientSecret));
+        $headers['Accept'] = 'application/json';
 
         return json_decode($this->fetchURL($introspection_endpoint, $post_params, $headers));
     }
@@ -1511,8 +1451,8 @@ class OpenIDConnectClient
 
         // Convert token params to string format
         $post_params = http_build_query($post_data, '', '&');
-        $headers = ['Authorization: Basic ' . base64_encode(urlencode($clientId) . ':' . urlencode($clientSecret)),
-            'Accept: application/json'];
+        $headers['Authorization'] = 'Basic ' . base64_encode(urlencode($clientId) . ':' . urlencode($clientSecret));
+        $headers['Accept'] = 'application/json';
 
         return json_decode($this->fetchURL($revocation_endpoint, $post_params, $headers));
     }
@@ -1548,7 +1488,7 @@ class OpenIDConnectClient
 
         # Consider Basic authentication if provider config is set this way
         if (in_array('client_secret_basic', $token_endpoint_auth_methods_supported, true)) {
-            $headers = ['Authorization: Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret))];
+            $headers['Authorization'] = 'Basic ' . base64_encode(urlencode($this->clientID) . ':' . urlencode($this->clientSecret));
             unset($post_data['client_secret']);
             unset($post_data['client_id']);
         }
@@ -1787,27 +1727,6 @@ class OpenIDConnectClient
     }
 
     /**
-     * Where hash_equals is not available, this provides a timing-attack safe string comparison
-     * @param string $str1
-     * @param string $str2
-     * @return bool
-     */
-    private static function hashEquals($str1, $str2) {
-        $len1=static::safeLength($str1);
-        $len2=static::safeLength($str2);
-
-        //compare strings without any early abort...
-        $len = min($len1, $len2);
-        $status = 0;
-        for ($i = 0; $i < $len; $i++) {
-            $status |= (ord($str1[$i]) ^ ord($str2[$i]));
-        }
-        //if strings were different lengths, we fail
-        $status |= ($len1 ^ $len2);
-        return ($status === 0);
-    }
-
-    /**
      * Use session to manage a nonce
      */
     protected function startSession() {
@@ -1909,7 +1828,7 @@ class OpenIDConnectClient
                 $method = 'plain';
             }
         }
-            
+
         return $method;
     }
 
@@ -1930,7 +1849,7 @@ class OpenIDConnectClient
      * 
      * @param bool $disableNonce
      */
-    public function setUnsafeDisableNonce($disableNonce) {
+    public function setUnsafeDisableNonce(bool $disableNonce) {
         $this->unsafeDisableNonce = $disableNonce;
     }
 
@@ -1944,7 +1863,39 @@ class OpenIDConnectClient
     /**
      * @param bool $disablePkce true to disable use of PKCE
      */
-    public function setUnsafeDisablePkce() {
-        return $this->unsafeDisablePkce;
+    public function setUnsafeDisablePkce(bool $disablePkce) {
+        $this->unsafeDisablePkce;
+    }
+
+    /**
+     * @param \GuzzleHttp\Client $httpClient HTTP client this class should use to make requests
+     */
+    public function setHttpClient(\GuzzleHttp\Client $httpClient) {
+        $this->httpClient = $httpClient;
+    }
+
+    /**
+     * @return \GuzzleHttp\Client
+     */
+    public function getHttpClient() : \GuzzleHttp\Client {
+
+        if ($this->httpClient == null)  {
+
+            $options = ['allow_redirects' => true, 'timeout' => $this->timeOut];
+
+            if (isset($this->httpProxy)) {
+                $options['proxy'] = $this->httpProxy;
+            }
+
+            if (!$this->verifyPeer) {
+                $options['verify'] = false;
+            }
+
+            if (isset($this->certPath)) {
+                $options['verify'] = $this->certPath;
+            }
+            return new \GuzzleHttp\Client($options);
+        }
+        return $this->httpClient;
     }
 }

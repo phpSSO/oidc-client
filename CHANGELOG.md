@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [master]
+
+### Removed
+* support for PHP versions <7.2.5
+* `setHttpUpgradeInsecureRequests(false)` [#17](https://github.com/JuliusPC/OpenID-Connect-PHP/issues/17)
+* `setVerifyHost()` and `getVerifyHost()` due to use of Guzzle instead of curl directly
+
+
 ## [1.1.3]
 
 ### Changed
