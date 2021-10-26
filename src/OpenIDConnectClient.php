@@ -133,7 +133,7 @@ class OpenIDConnectClient
     /**
      * @var bool Verify SSL peer on transactions
      */
-    private $verifyPeer = true;
+    private bool $verifyPeer = true;
 
     /**
      * @var string if we acquire an access token it will be stored here
@@ -224,7 +224,7 @@ class OpenIDConnectClient
     /**
      * @var bool Allow OAuth 2 implicit flow; see http://openid.net/specs/openid-connect-core-1_0.html#ImplicitFlowAuth
      */
-    private $allowImplicitFlow = false;
+    private bool $allowImplicitFlow = false;
 
     /**
      * @var string
@@ -235,11 +235,6 @@ class OpenIDConnectClient
      * @var int defines which URL-encoding http_build_query() uses
      */
     protected $encType = PHP_QUERY_RFC1738;
-
-    /**
-     * @var bool Enable or disable upgrading to HTTPS by paying attention to HTTP header HTTP_UPGRADE_INSECURE_REQUESTS
-     */
-    protected $httpUpgradeInsecureRequests = true;
 
     /**
      * @var string holds code challenge method for PKCE mode
@@ -255,12 +250,12 @@ class OpenIDConnectClient
     /**
      * @var bool true if PKCE is disabled
      */
-    private $unsafeDisablePkce = false;
+    private bool $unsafeDisablePkce = false;
 
     /**
      * @var bool true if nonce is disabled
      */
-    private $unsafeDisableNonce = false;
+    private bool $unsafeDisableNonce = false;
 
     /**
      * @param $provider_url string optional
@@ -310,7 +305,7 @@ class OpenIDConnectClient
      * @return bool
      * @throws OpenIDConnectClientException
      */
-    public function authenticate() {
+    public function authenticate() : bool {
 
         // protect against mix-up attacks
         // experimental feature, see https://tools.ietf.org/html/draft-ietf-oauth-iss-auth-resp-00
@@ -471,7 +466,7 @@ class OpenIDConnectClient
      *
      * @throws OpenIDConnectClientException
      */
-    public function signOut($idToken, $redirect) {
+    public function signOut(string $idToken, ?string $redirect) {
         $signout_endpoint = $this->getProviderConfigValue('end_session_endpoint');
 
         $signout_params = null;
@@ -491,7 +486,7 @@ class OpenIDConnectClient
     /**
      * @param array $scope - example: openid, given_name, etc...
      */
-    public function addScope($scope) {
+    public function addScope(array $scope) {
         $this->scopes = array_merge($this->scopes, (array)$scope);
     }
 
@@ -599,7 +594,7 @@ class OpenIDConnectClient
      *
      * @return string
      */
-    public function getRedirectURL() {
+    public function getRedirectURL() : string {
 
         // If the redirect URL has been set then return it.
         if (property_exists($this, 'redirectURL') && $this->redirectURL) {
@@ -645,7 +640,7 @@ class OpenIDConnectClient
      * @return string hex encoded string (length of return is double of parameter $length)
      * @throws OpenIDConnectClientException
      */
-    protected function generateRandString(int $length = 16) {
+    protected function generateRandString(int $length = 16) : string {
         try {
             return \bin2hex(\random_bytes($length));
         } catch (\Error $e) {
@@ -660,7 +655,7 @@ class OpenIDConnectClient
      * @return void
      * @throws OpenIDConnectClientException
      */
-    private function requestAuthorization() {
+    private function requestAuthorization() : void {
 
         $auth_endpoint = $this->getProviderConfigValue('authorization_endpoint');
         $response_type = 'code';
@@ -933,7 +928,7 @@ class OpenIDConnectClient
      * @return bool
      * @throws OpenIDConnectClientException
      */
-    private function verifyRSAJWTsignature($hashtype, $key, $payload, $signature, $signatureType) {
+    private function verifyRSAJWTsignature($hashtype, $key, $payload, $signature, $signatureType) : bool {
         if (!class_exists('\phpseclib\Crypt\RSA') && !class_exists('Crypt_RSA')) {
             throw new OpenIDConnectClientException('Crypt_RSA support unavailable.');
         }
@@ -970,13 +965,13 @@ class OpenIDConnectClient
 
     /**
      * @param string $hashtype
-     * @param object $key
+     * @param string $key
      * @param $payload
      * @param $signature
      * @return bool
      * @throws OpenIDConnectClientException
      */
-    private function verifyHMACJWTsignature($hashtype, $key, $payload, $signature)
+    private function verifyHMACJWTsignature($hashtype, $key, $payload, $signature) : bool
     {
         if (!function_exists('hash_hmac')) {
             throw new OpenIDConnectClientException('hash_hmac support unavailable.');
@@ -992,7 +987,7 @@ class OpenIDConnectClient
      * @throws OpenIDConnectClientException
      * @return bool
      */
-    public function verifyJWTsignature($jwt) {
+    public function verifyJWTsignature($jwt) : bool {
         if (!\is_string($jwt)) {
             throw new OpenIDConnectClientException('Error token is not a string');
         }
@@ -1045,7 +1040,7 @@ class OpenIDConnectClient
      * @param string|null $accessToken
      * @return bool
      */
-    protected function verifyJWTclaims($claims, $accessToken = null) {
+    protected function verifyJWTclaims($claims, $accessToken = null) : bool {
         if(isset($claims->at_hash) && isset($accessToken)) {
             if(isset($this->getIdTokenHeader()->alg) && $this->getIdTokenHeader()->alg !== 'none') {
                 $bit = substr($this->getIdTokenHeader()->alg, 2, 3);
@@ -1070,7 +1065,7 @@ class OpenIDConnectClient
      * @param string $str
      * @return string
      */
-    protected function urlEncode($str) {
+    protected function urlEncode($str) : string {
         $enc = base64_encode($str);
         $enc = rtrim($enc, '=');
         $enc = strtr($enc, '+/', '-_');
@@ -1230,7 +1225,7 @@ class OpenIDConnectClient
      * @return string
      * @throws OpenIDConnectClientException
      */
-    public function getWellKnownIssuer($appendSlash = false) {
+    public function getWellKnownIssuer($appendSlash = false) : string {
 
         return $this->getWellKnownConfigValue('issuer') . ($appendSlash ? '/' : '');
     }
@@ -1239,7 +1234,7 @@ class OpenIDConnectClient
      * @return string
      * @throws OpenIDConnectClientException
      */
-    public function getIssuer() {
+    public function getIssuer() : string {
 
         if (!isset($this->providerConfig['issuer'])) {
             throw new OpenIDConnectClientException('The issuer has not been set');
@@ -1285,7 +1280,7 @@ class OpenIDConnectClient
     /**
      * @return string|null
      */
-    public function getCertPath() {
+    public function getCertPath() : ?string {
         return $this->certPath;
     }
 
@@ -1299,7 +1294,7 @@ class OpenIDConnectClient
     /**
      * @return bool
      */
-    public function getVerifyPeer() {
+    public function getVerifyPeer() : bool {
         return $this->verifyPeer;
     }
 
@@ -1326,7 +1321,7 @@ class OpenIDConnectClient
     /**
      * @return bool
      */
-    public function getAllowImplicitFlow() {
+    public function getAllowImplicitFlow() : bool {
         return $this->allowImplicitFlow;
     }
 
@@ -1494,7 +1489,7 @@ class OpenIDConnectClient
         }
 
         // Convert token params to string format
-        $post_params = http_build_query($post_data, null, '&', $this->encType);
+        $post_params = http_build_query($post_data, '', '&', $this->encType);
 
         return json_decode($this->fetchURL($token_endpoint, $post_params, $headers));
     }
@@ -1502,35 +1497,35 @@ class OpenIDConnectClient
     /**
      * @return string
      */
-    public function getClientName() {
+    public function getClientName() : string {
         return $this->clientName;
     }
 
     /**
      * @param string $clientName
      */
-    public function setClientName($clientName) {
+    public function setClientName(string $clientName) {
         $this->clientName = $clientName;
     }
 
     /**
      * @return string
      */
-    public function getClientID() {
+    public function getClientID() : string {
         return $this->clientID;
     }
 
     /**
      * @return string
      */
-    public function getClientSecret() {
+    public function getClientSecret() : string {
         return $this->clientSecret;
     }
 
     /**
      * @return bool
      */
-    public function canVerifySignatures() {
+    public function canVerifySignatures() : bool {
         return class_exists('\phpseclib\Crypt\RSA') || class_exists('Crypt_RSA');
     }
 
@@ -1549,21 +1544,21 @@ class OpenIDConnectClient
     /**
      * @return string
      */
-    public function getAccessToken() {
+    public function getAccessToken() : string {
         return $this->accessToken;
     }
 
     /**
      * @return string
      */
-    public function getRefreshToken() {
+    public function getRefreshToken() : string {
         return $this->refreshToken;
     }
 
     /**
      * @return string
      */
-    public function getIdToken() {
+    public function getIdToken() : string {
         return $this->idToken;
     }
 
@@ -1598,7 +1593,7 @@ class OpenIDConnectClient
     /**
      * @return string
      */
-    public function getTokenResponse() {
+    public function getTokenResponse() : string {
         return $this->tokenResponse;
     }
 
@@ -1608,7 +1603,7 @@ class OpenIDConnectClient
      * @param string $nonce
      * @return string
      */
-    protected function setNonce($nonce) {
+    protected function setNonce(string $nonce) {
         $this->setSessionKey('openid_connect_nonce', $nonce);
         return $nonce;
     }
@@ -1618,7 +1613,7 @@ class OpenIDConnectClient
      *
      * @return string
      */
-    protected function getNonce() {
+    protected function getNonce() : string {
         return $this->getSessionKey('openid_connect_nonce');
     }
 
@@ -1647,7 +1642,7 @@ class OpenIDConnectClient
      *
      * @return string
      */
-    protected function getState() {
+    protected function getState() : string {
         return $this->getSessionKey('openid_connect_state');
     }
 
@@ -1666,7 +1661,7 @@ class OpenIDConnectClient
      * @param string $codeVerifier
      * @return string
      */
-    protected function setCodeVerifier($codeVerifier) {
+    protected function setCodeVerifier(string $codeVerifier) {
         $this->setSessionKey('openid_connect_code_verifier', $codeVerifier);
         return $codeVerifier;
     }
@@ -1676,7 +1671,7 @@ class OpenIDConnectClient
      *
      * @return string
      */
-    protected function getCodeVerifier() {
+    protected function getCodeVerifier() : string {
         return $this->getSessionKey('openid_connect_code_verifier');
     }
 
@@ -1694,7 +1689,7 @@ class OpenIDConnectClient
      *
      * @return int
      */
-    public function getResponseCode() {
+    public function getResponseCode() : int {
         return $this->responseCode;
     }
 
@@ -1703,27 +1698,15 @@ class OpenIDConnectClient
      *
      * @param int $timeout
      */
-    public function setTimeout($timeout) {
+    public function setTimeout(int $timeout) {
         $this->timeOut = $timeout;
     }
 
     /**
      * @return int
      */
-    public function getTimeout() {
+    public function getTimeout() : int {
         return $this->timeOut;
-    }
-
-    /**
-     * Safely calculate length of binary string
-     * @param string $str
-     * @return int
-     */
-    private static function safeLength($str) {
-        if (function_exists('mb_strlen')) {
-            return mb_strlen($str, '8bit');
-        }
-        return strlen($str);
     }
 
     /**
@@ -1782,21 +1765,21 @@ class OpenIDConnectClient
     /**
      * @return array
      */
-    public function getScopes() {
+    public function getScopes() : array {
         return $this->scopes;
     }
 
     /**
      * @return array
      */
-    public function getResponseTypes() {
+    public function getResponseTypes() : array {
         return $this->responseTypes;
     }
 
     /**
      * @return array
      */
-    public function getAuthParams() {
+    public function getAuthParams() : array {
         return $this->authParams;
     }
 
@@ -1810,14 +1793,14 @@ class OpenIDConnectClient
     /**
      * @return int
      */
-    public function getLeeway() {
+    public function getLeeway() : int {
         return $this->leeway;
     }
 
     /**
      * @return string
      */
-    public function getCodeChallengeMethod() {
+    public function getCodeChallengeMethod() : string {
         $method = $this->codeChallengeMethod;
 
         if(empty($method)) {
@@ -1838,7 +1821,7 @@ class OpenIDConnectClient
      * 
      * @param string $codeChallengeMethod
      */
-    public function setCodeChallengeMethod($codeChallengeMethod) {
+    public function setCodeChallengeMethod(string $codeChallengeMethod) {
         $this->codeChallengeMethod = $codeChallengeMethod;
     }
 
@@ -1854,9 +1837,9 @@ class OpenIDConnectClient
     }
 
     /**
-     * @param bool $disableNonce true to disable use of nonce
+     * @return bool true if use of nonce disabled
      */
-    public function getUnsafeDisableNonce() {
+    public function getUnsafeDisableNonce() : bool {
         return $this->unsafeDisableNonce;
     }
 
@@ -1864,7 +1847,14 @@ class OpenIDConnectClient
      * @param bool $disablePkce true to disable use of PKCE
      */
     public function setUnsafeDisablePkce(bool $disablePkce) {
-        $this->unsafeDisablePkce;
+        $this->unsafeDisablePkce = $disablePkce;
+    }
+
+    /**
+     * @return bool true if use of PKCE is disabled
+     */
+    public function getUnsafeDisablePkce() : bool {
+        return $this->unsafeDisablePkce;
     }
 
     /**
@@ -1879,7 +1869,7 @@ class OpenIDConnectClient
      */
     public function getHttpClient() : \GuzzleHttp\Client {
 
-        if ($this->httpClient == null)  {
+        if (!isset($this->httpClient))  {
 
             $options = ['allow_redirects' => true, 'timeout' => $this->timeOut];
 
