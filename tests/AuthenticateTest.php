@@ -6,7 +6,6 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-use GuzzleHttp\Psr7\Request;
 use PHPUnit\Framework\TestCase;
 
 class AuthenticateTest extends TestCase
@@ -29,10 +28,12 @@ class AuthenticateTest extends TestCase
             'HTTP_HOST' => 'localhost:8080',
             'HTTP_UPGRADE_INSECURE_REQUESTS' => '1'
         ];
+        $_SESSION = [];
     }
 
-    public function testAuthorizationRequestRedirect()
+    public function testAuthorizationCodeFlowRequest()
     {
+        /** @var $client OpenIDConnectClient */
         $client = $this->getMockBuilder(OpenIDConnectClient::class)->setMethods(['fetchUrl', 'redirect', 'generateRandString'])->getMock();
         $client->method('fetchUrl')->willReturn(file_get_contents(__DIR__ . "/data/well-known_openid-configuration.json"));
         $client->method('generateRandString')->willReturn($this->randomToken);
@@ -47,12 +48,13 @@ class AuthenticateTest extends TestCase
             $this->assertEquals('code', $parameters['response_type']);
             $this->assertEquals('http://localhost:8080/test.php', $parameters['redirect_uri']);
             $this->assertEquals($this->randomToken, $parameters['state']);
-            $this->assertEquals('openid', $parameters['scope']);
+            $this->assertEquals('offline_access openid', $parameters['scope']);
             $this->assertEquals($this->randomToken, $parameters['nonce']);
             $this->assertEquals($this->codeChallenge, $parameters['code_challenge']);
             $this->assertEquals('S256', $parameters['code_challenge_method']);
         }));
         $client->setProviderURL('https://example.org/');
+        $client->addScope(['offline_access']);
         $client->authenticate();
 
         // check if state, nonce, and code_verifier are saved to the session
@@ -61,7 +63,7 @@ class AuthenticateTest extends TestCase
         $this->assertEquals($this->randomToken, $_SESSION['openid_connect_code_verifier']);
     }
 
-    public function testAuthorizationResponse()
+    public function testAuthorizationCodeFlowResponse()
     {
         $_SESSION['openid_connect_state'] = $this->randomToken;
         $_SESSION['openid_connect_nonce'] = $this->randomToken;
@@ -83,6 +85,7 @@ class AuthenticateTest extends TestCase
         $handlerStack->push($history);
         $httpClient = new Client(['handler' => $handlerStack]);
 
+        /** @var $client OpenIDConnectClient */
         $client = $this->getMockBuilder(OpenIDConnectClient::class)->setMethods(['verifyJWTsignature', 'verifyJWTclaims'])->getMock();
         // depending on the setup, we do not need to mock those (ToDo)
         $client->method('verifyJWTsignature')->willReturn(true);
@@ -122,9 +125,76 @@ class AuthenticateTest extends TestCase
         $this->assertEquals('248289761001', $client->getVerifiedClaims('sub'));
     }
 
+    public function testAuthorizationImplicitFlowRequest()
+    {
+        /** @var $client OpenIDConnectClient */
+        $client = $this->getMockBuilder(OpenIDConnectClient::class)->setMethods(['fetchUrl', 'redirect', 'generateRandString'])->getMock();
+        $client->method('fetchUrl')->willReturn(file_get_contents(__DIR__ . "/data/well-known_openid-configuration.json"));
+        $client->method('generateRandString')->willReturn($this->randomToken);
+        $client->method('redirect')->will($this->returnCallback(function($url) {
+            $parts = explode('?', $url);
+            // check if authorization_endpoint is set correctly
+            $this->assertEquals('https://example.org/connect/authorize', $parts[0]);
+
+            // check required URL parameters
+            parse_str($parts[1], $parameters);
+            $this->assertEquals(6, count($parameters));
+            $this->assertEquals('id_token', $parameters['response_type']);
+            $this->assertEquals('http://localhost:8080/test.php', $parameters['redirect_uri']);
+            $this->assertEquals($this->randomToken, $parameters['state']);
+            $this->assertEquals('openid', $parameters['scope']);
+            $this->assertEquals($this->randomToken, $parameters['nonce']);
+
+            // code_challenge and code_challenge must not be sent in implicit flow
+            $this->assertArrayNotHasKey('code_challenge', $parameters);
+            $this->assertArrayNotHasKey('code_challenge_method', $parameters);
+        }));
+        $client->setProviderURL('https://example.org/');
+        $client->setResponseTypes(['id_token']);
+        $client->setAllowImplicitFlow(true);
+        $client->addAuthParam(['response_mode' => 'form_post']);
+        $client->authenticate();
+
+        // check if state and nonce are saved to the session
+        $this->assertEquals($this->randomToken, $_SESSION['openid_connect_state']);
+        $this->assertEquals($this->randomToken, $_SESSION['openid_connect_nonce']);
+
+        // PKCE is not used in implicit flow
+        $this->assertArrayNotHasKey('openid_connect_code_verifier', $_SESSION);
+    }
+
+    public function testAuthorizationImplicitFlowResponse()
+    {
+        $_SESSION['openid_connect_state'] = $this->randomToken;
+        $_SESSION['openid_connect_nonce'] = $this->randomToken;
+
+        $_REQUEST['id_token'] = 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFlOWdkazcifQ.eyJpc3MiOiJodHRwczovL2V4YW1wbGUub3JnIiwic3ViIjoiMjQ4Mjg5NzYxMDAxIiwiYXVkIjoiY2xpZW50X2lkIiwibm9uY2UiOiIwMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZiIsImV4cCI6IDEzMTEyODE5NzAsImlhdCI6MTMxMTI4MDk3MH0.ggW8hZ1EuVLuxNuuIJKX_V8a_OMXzR0EHR9R6jgdqrOOF4daGU96Sr_P6qJp6IcmD3HP99Obi1PRs-cwh3LO-p146waJ8IhehcwL7F09JdijmBqkvPeB2T9CJNqeGpe-gccMg4vfKjkM8FcGvnzZUN4_KSP0aAp1tOJ1zZwgjxqGByKHiOtX7TpdQyHE5lcMiKPXfEIQILVq0pc_E2DzL7emopWoaoZTF_m0_N0YzFC6g6EJbOEoRoSK5hoDalrcvRYLSrQAZZKflyuVCyixEoV9GfNQC3_osjzw2PAithfubEEBLuVVk4XUVrWOLrLl0nx7RkKU8NXNHq-rvKMzqg';
+        $_REQUEST['state'] = $this->randomToken;
+
+        /** @var $client OpenIDConnectClient */
+        $client = $this->getMockBuilder(OpenIDConnectClient::class)->setMethods(['verifyJWTsignature', 'verifyJWTclaims', 'fetchURl'])->getMock();
+        $client->method('fetchUrl')->willReturn(file_get_contents(__DIR__ . "/data/well-known_openid-configuration.json"));
+        // depending on the setup, we do not need to mock those (ToDo)
+        $client->method('verifyJWTsignature')->willReturn(true);
+        $client->method('verifyJWTclaims')->willReturn(true);
+        $client->setProviderURL('https://example.org/');
+        $client->setResponseTypes(['id_token']);
+        $client->setAllowImplicitFlow(true);
+        $client->setIssuer('https://example.org');
+        $client->setClientID('client_id');
+        $client->setClientSecret('client_secret');
+        $this->assertTrue($client->authenticate());
+
+        // check if OpenID Connect set values correctly
+        $this->assertEquals('248289761001', $client->getVerifiedClaims('sub'));
+    }
+
     protected function tearDown() : void
     {
         $_SERVER = [];
         $_SESSION = [];
+        $_REQUEST = [];
+        $_GET = [];
+        $_POST = [];
     }
 }
