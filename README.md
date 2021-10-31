@@ -21,8 +21,7 @@ This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumb
 
 # Requirements #
  1. PHP 7.3 or greater
- 2. CURL extension
- 3. JSON extension
+ 2. JSON extension
 
 ## Install ##
  1. Install library using composer
