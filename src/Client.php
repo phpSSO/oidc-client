@@ -781,11 +781,11 @@ class Client
      * Requests Access token with refresh token
      *
      * @param string $refresh_token
-     * @param bool $sendScopes optional controls whether scopes are sent in the request, defaults to true
+     * @param bool $sendScopes optional controls whether scopes are sent in the request, defaults to false
      * @return mixed
      * @throws ClientException
      */
-    public function refreshToken($refresh_token, $sendScopes = true) {
+    public function refreshToken($refresh_token, $sendScopes = false) {
         $token_endpoint = $this->getProviderConfigValue('token_endpoint');
         $token_endpoint_auth_methods_supported = $this->getProviderConfigValue('token_endpoint_auth_methods_supported', ['client_secret_basic']);
 
@@ -801,7 +801,7 @@ class Client
         ];
 
         if($sendScopes) {
-            $token_params['scopes'] = implode(' ', $this->scopes);
+            $token_params['scope'] = implode(' ', $this->scopes);
         }
 
         // Consider Basic authentication if provider config is set this way
@@ -1055,7 +1055,7 @@ class Client
 
         $user_info_endpoint .= '?schema=' . $schema;
 
-        //The accessToken has to be sent in the Authorization header.
+        // The accessToken has to be sent in the Authorization header.
         // Accept json to indicate response type
         $headers["Authorization"] = "Bearer {$this->accessToken}";
         $headers['Accept'] = 'application/json';
