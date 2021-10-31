@@ -1,12 +1,12 @@
-PHP OpenID Connect Basic Client
-========================
+# PHP OpenID Connect Client
+
 A simple library that allows an application to authenticate a user through the basic OpenID Connect flow.
 This library hopes to encourage OpenID Connect use by making it simple enough for a developer with little knowledge of
 the OpenID Connect protocol to setup authentication.
 
 This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumbojett/OpenID-Connect-PHP), which seems to be discontinued. For progress being made on fixing bugs of the original library [see this wiki page](https://github.com/JuliusPC/OpenID-Connect-PHP/wiki/Progress-on-fixing-upstream-issues).
 
-# Supported Specifications #
+## Supported Specifications
 
 - [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)
 - [OpenID Connect Discovery 1.0](https://openid.net/specs/openid-connect-discovery-1_0.html) ([finding the issuer is missing](https://github.com/jumbojett/OpenID-Connect-PHP/issues/2))
@@ -19,11 +19,13 @@ This library is a fork of [jumbojett/OpenID-Connect-PHP](https://github.com/jumb
 - [RFC 8693: OAuth 2.0 Token Exchange](https://tools.ietf.org/html/rfc8693)
 - [Draft: OAuth 2.0 Authorization Server Issuer Identifier in Authorization Response](https://tools.ietf.org/html/draft-ietf-oauth-iss-auth-resp-00)
 
-# Requirements #
+## Requirements
+
  1. PHP 7.3 or greater
  2. JSON extension
 
-## Install ##
+## Install
+
  1. Install library using composer
 ```
 composer require juliuspc/openid-connect-php
@@ -33,14 +35,14 @@ composer require juliuspc/openid-connect-php
 require __DIR__ . '/vendor/autoload.php';
 ```
 
-## Example 1: Basic Client ##
+## Example 1: Basic Client
 
 This example uses the Authorization Code flow and will also use PKCE if the OpenID Provider announces it in his Discovery document. If you are not sure, which flow you should choose: This one is the way to go. It is the most secure and versatile flow.
 
 ```php
-use JuliusPC\OpenIDConnectClient;
+use JuliusPC\OpenIDConnect\Client;
 
-$oidc = new OpenIDConnectClient('https://id.example.com',
+$oidc = new Client('https://id.example.com',
                                 'ClientIDHere',
                                 'ClientSecretHere');
 $oidc->authenticate();
@@ -50,12 +52,12 @@ $name = $oidc->requestUserInfo('given_name');
 
 [See OpenID Connect spec for available user attributes][1]
 
-## Example 2: Dynamic Registration ##
+## Example 2: Dynamic Registration
 
 ```php
-use JuliusPC\OpenIDConnectClient;
+use JuliusPC\OpenIDConnect\Client;
 
-$oidc = new OpenIDConnectClient("https://id.example.com");
+$oidc = new Client("https://id.example.com");
 
 $oidc->register();
 $client_id = $oidc->getClientID();
@@ -64,7 +66,7 @@ $client_secret = $oidc->getClientSecret();
 // Be sure to add logic to store the client id and client secret
 ```
 
-## Example 3: Network and Security ##
+## Example 3: Network and Security
 ```php
 // Configure a proxy
 $oidc->setHttpProxy("http://my.proxy.example.net:80/");
@@ -74,12 +76,12 @@ $oidc->setHttpProxy("http://my.proxy.example.net:80/");
 $oidc->setCertPath("/path/to/my.cert");
 ```
 
-## Example 4: Request Client Credentials Token ##
+## Example 4: Request Client Credentials Token
 
 ```php
-use JuliusPC\OpenIDConnectClient;
+use JuliusPC\OpenIDConnect\Client;
 
-$oidc = new OpenIDConnectClient('https://id.example.com',
+$oidc = new Client('https://id.example.com',
                                 'ClientIDHere',
                                 'ClientSecretHere');
 $oidc->providerConfigParam(array('token_endpoint'=>'https://id.example.com/connect/token'));
@@ -90,36 +92,14 @@ $clientCredentialsToken = $oidc->requestClientCredentialsToken()->access_token;
 
 ```
 
-## Example 5: Request access token via ROPCG ##
+## Example 5: Basic client for Implicit Flow
 
-Note: The Resource Owner Password Credentials Grant (ROPCG) will be obsoleted by OAuth 2.1.
-
-```php
-use JuliusPC\OpenIDConnectClient;
-
-$oidc = new OpenIDConnectClient('https://id.example.com',
-                                'ClientIDHere',
-                                'ClientSecretHere');
-$oidc->providerConfigParam(array('token_endpoint'=>'https://id.example.com/connect/token'));
-$oidc->addScope('my_scope');
-
-//Add username and password
-$oidc->addAuthParam(array('username'=>'<Username>'));
-$oidc->addAuthParam(array('password'=>'<Password>'));
-
-//Perform the auth and return the token (to validate check if the access_token property is there and a valid JWT) :
-$token = $oidc->requestResourceOwnerToken(TRUE)->access_token;
-
-```
-
-## Example 6: Basic client for implicit flow (see https://openid.net/specs/openid-connect-core-1_0.html#ImplicitFlowAuth) ##
-
-The implicit flow should be considered a legacy flow and not used if authorization code grant can be used. Due to its disadvantages and poor security, the implicit flow will be obsoleted with the upcoming OAuth 2.1 standard. See Example 1 for alternatives.
+The [Implicit Flow](https://openid.net/specs/openid-connect-core-1_0.html#ImplicitFlowAuth) should be considered a legacy flow and not used if authorization code grant can be used. Due to its disadvantages and poor security, the implicit flow will be obsoleted with the upcoming OAuth 2.1 standard. See Example 1 for alternatives.
 
 ```php
-use JuliusPC\OpenIDConnectClient;
+use JuliusPC\OpenIDConnect\Client;
 
-$oidc = new OpenIDConnectClient('https://id.example.com',
+$oidc = new Client('https://id.example.com',
                                 'ClientIDHere',
                                 'ClientSecretHere');
 $oidc->setResponseTypes(array('id_token'));
@@ -131,12 +111,14 @@ $sub = $oidc->getVerifiedClaims('sub');
 
 ```
 
-## Example 7: Introspection of an access token (see https://tools.ietf.org/html/rfc7662) ##
+## Example 6: Introspection of an access token
+
+Introspection as defined in [RFC 7662](https://tools.ietf.org/html/rfc7662) is intended to get information about the token without needing to parse it. Especially in case of so called reference token, which are random strings and do not contain information.
 
 ```php
-use JuliusPC\OpenIDConnectClient;
+use JuliusPC\OpenIDConnect\Client;
 
-$oidc = new OpenIDConnectClient('https://id.example.com',
+$oidc = new Client('https://id.example.com',
                                 'ClientIDHere',
                                 'ClientSecretHere');
 $data = $oidc->introspectToken('an.access-token.as.given');
@@ -146,7 +128,7 @@ if (!$data->active) {
 
 ```
 
-## Example 8: PKCE Client ##
+## Example 7: PKCE Client ##
 
 PKCE is already configured used in most szenarios in Example 1. This example shows two special things:
 
@@ -154,9 +136,9 @@ PKCE is already configured used in most szenarios in Example 1. This example sho
 2. Explicitly setting the Code Challenge Method via `setCodeChallengeMethod()`. This enables PKCE in case your OpenID Provider doesn’t announce support for it in the discovery document, but supports it anyway.
 
 ```php
-use JuliusPC\OpenIDConnectClient;
+use JuliusPC\OpenIDConnect\Client;
 
-$oidc = new OpenIDConnectClient('https://id.example.com',
+$oidc = new Client('https://id.example.com',
                                 'ClientIDHere',
                                 'ClientSecret'); // you may obmit the client secret
 // for some reason we want to set S256 explicitly as Code Challenge Method

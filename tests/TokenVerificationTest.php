@@ -1,9 +1,10 @@
 <?php
 
-use JuliusPC\OpenIDConnectClient;
-use PHPUnit\Framework\TestCase;
+namespace JuliusPC\OpenIDConnect\Tests;
 
-class TokenVerificationTest extends TestCase
+use JuliusPC\OpenIDConnect\Client;
+
+class TokenVerificationTest extends TestBaseCase
 {
     /**
      * @param $alg
@@ -13,8 +14,8 @@ class TokenVerificationTest extends TestCase
      */
     public function testTokenVerification($alg, $jwt)
     {
-        /** @var OpenIDConnectClient | PHPUnit_Framework_MockObject_MockObject $client */
-        $client = $this->getMockBuilder(OpenIDConnectClient::class)->setMethods(['fetchUrl'])->getMock();
+        /** @var $client Client */
+        $client = $this->getMockBuilder(Client::class)->setMethods(['fetchUrl'])->getMock();
         $client->method('fetchUrl')->willReturn(file_get_contents(__DIR__ . "/data/jwks-$alg.json"));
         $client->setProviderURL('https://example.org/');
         $client->providerConfigParam(['jwks_uri' => 'https://example.org/.well-known/jwks.json']);

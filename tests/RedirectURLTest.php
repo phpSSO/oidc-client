@@ -1,15 +1,16 @@
 <?php
 
-use JuliusPC\OpenIDConnectClient;
-use PHPUnit\Framework\TestCase;
+namespace JuliusPC\OpenIDConnect\Tests;
 
-class RedirectURLTest extends TestCase
+use JuliusPC\OpenIDConnect\Client;
+
+class RedirectURLTest extends TestBaseCase
 {
-    private $client;
+    private Client $client;
 
     protected function setUp(): void
     {
-        $this->client = new OpenIDConnectClient('https://example.org', 'client_id', 'client_secret');
+        $this->client = new Client('https://example.org', 'client_id', 'client_secret');
         $_SERVER = [
             'SERVER_PROTOCOL' => 'HTTP/1.1',
             'SERVER_NAME' => 'localhost',
@@ -24,63 +25,63 @@ class RedirectURLTest extends TestCase
         ];
     }
 
-    public function testRedirectURLHttp8080() : void
+    public function testRedirectURLHttp8080(): void
     {
         $redirectUrl = $this->client->getRedirectURL();
         self::assertEquals('http://localhost:8080/test.php', $redirectUrl);
     }
 
-    public function testRedirectURLHttp80() : void
+    public function testRedirectURLHttp80(): void
     {
-        $_SERVER['SERVER_PORT'] ='80';
+        $_SERVER['SERVER_PORT'] = '80';
         $_SERVER['HTTP_HOST'] = 'localhost';
 
         $redirectUrl = $this->client->getRedirectURL();
         self::assertEquals('http://localhost/test.php', $redirectUrl);
     }
 
-    public function testRedirectURLQueryParameter() : void
+    public function testRedirectURLQueryParameter(): void
     {
-        $_SERVER['SERVER_PORT'] ='80';
+        $_SERVER['SERVER_PORT'] = '80';
         $_SERVER['HTTP_HOST'] = 'localhost';
-        $_SERVER['REQUEST_URI'] ='/test.php?param1=abc';
+        $_SERVER['REQUEST_URI'] = '/test.php?param1=abc';
         $_SERVER['QUERY_STRING'] = 'param1=abc';
 
         $redirectUrl = $this->client->getRedirectURL();
         self::assertEquals('http://localhost/test.php', $redirectUrl);
     }
 
-    public function testRedirectURLHttpsRequestScheme() : void
+    public function testRedirectURLHttpsRequestScheme(): void
     {
         $_SERVER['SERVER_PORT'] = '443';
         $_SERVER['HTTP_HOST'] = 'localhost:443';
         $_SERVER['REQUEST_SCHEME'] = 'https';
-        
+
         $redirectUrl = $this->client->getRedirectURL();
         self::assertEquals('https://localhost/test.php', $redirectUrl);
     }
 
-    public function testRedirectURLHttpsXForwardedProto() : void
+    public function testRedirectURLHttpsXForwardedProto(): void
     {
         $_SERVER['SERVER_PORT'] = '80';
         $_SERVER['HTTP_HOST'] = 'localhost:80';
         $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
-        
+
         $redirectUrl = $this->client->getRedirectURL();
         self::assertEquals('https://localhost/test.php', $redirectUrl);
     }
 
-    public function testRedirectURLHttpsHeader() : void
+    public function testRedirectURLHttpsHeader(): void
     {
         $_SERVER['SERVER_PORT'] = '443';
         $_SERVER['HTTP_HOST'] = 'localhost:443';
         $_SERVER['HTTPS'] = 'on';
-        
+
         $redirectUrl = $this->client->getRedirectURL();
         self::assertEquals('https://localhost/test.php', $redirectUrl);
     }
 
-    protected function tearDown() : void
+    protected function tearDown(): void
     {
         $_SERVER = [];
     }
