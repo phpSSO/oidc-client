@@ -50,7 +50,7 @@ class AuthenticateTest extends TestBaseCase
             $this->assertEquals('S256', $parameters['code_challenge_method']);
         }));
         $client->setProviderURL('https://example.org/');
-        $client->addScope(['offline_access']);
+        $client->addScope('offline_access');
         $client->authenticate();
 
         // check if state, nonce, and code_verifier are saved to the session

@@ -431,10 +431,10 @@ class Client
     }
 
     /**
-     * @param array $scope - example: openid, given_name, etc...
+     * @param string $scope - example: openid, given_name, etc...
      */
-    public function addScope(array $scope) {
-        $this->scopes = array_merge($this->scopes, (array)$scope);
+    public function addScope(string $scope) {
+        $this->scopes = array_merge($this->scopes, [$scope]);
     }
 
     /**
