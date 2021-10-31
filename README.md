@@ -36,7 +36,7 @@ require __DIR__ . '/vendor/autoload.php';
 
 ## Example 1: Basic Client ##
 
-This example uses the Authorization Code flow and will also use PKCE if the OpenID Provider announces it in his Discovery document. If you are not sure, which flow you should choose: This one is the way to go. It is the most secure and versatile.
+This example uses the Authorization Code flow and will also use PKCE if the OpenID Provider announces it in his Discovery document. If you are not sure, which flow you should choose: This one is the way to go. It is the most secure and versatile flow.
 
 ```php
 use JuliusPC\OpenIDConnectClient;
@@ -115,7 +115,7 @@ $token = $oidc->requestResourceOwnerToken(TRUE)->access_token;
 
 ## Example 6: Basic client for implicit flow (see https://openid.net/specs/openid-connect-core-1_0.html#ImplicitFlowAuth) ##
 
-The implicit flow should be considered a legacy flow and not used if authorization code grant can be used. Due to its disadvantages and poor security, he implicit flow will be obsoleted with the upcoming OAuth 2.1 standard. See Example 1 for alternatives.
+The implicit flow should be considered a legacy flow and not used if authorization code grant can be used. Due to its disadvantages and poor security, the implicit flow will be obsoleted with the upcoming OAuth 2.1 standard. See Example 1 for alternatives.
 
 ```php
 use JuliusPC\OpenIDConnectClient;
@@ -151,15 +151,15 @@ if (!$data->active) {
 
 PKCE is already configured used in most szenarios in Example 1. This example shows two special things:
 
-1. You may omit the client secret, if your OpenID Provider allows you to do so and if it is really needed for your use case. Applications written in PHP are typically confidential OAuth clients and thus don’t leak a client secret.
-2. Explicitly setting the Code Challenge Method via `setCodeChallengeMethod()`. This enables PKCE in cas your OpenID Provider doesn’t announce support for it in the discovery document, but supports it anyway.
+1. You may omit the client secret, if your OpenID Provider allows you to do so and if it is really needed for your use case. This is a rare use case, since PHP applications are typically confidential OAuth clients and thus don’t leak a client secret.
+2. Explicitly setting the Code Challenge Method via `setCodeChallengeMethod()`. This enables PKCE in case your OpenID Provider doesn’t announce support for it in the discovery document, but supports it anyway.
 
 ```php
 use JuliusPC\OpenIDConnectClient;
 
 $oidc = new OpenIDConnectClient('https://id.example.com',
                                 'ClientIDHere',
-                                'ClientSecret'); // you may obmit the client secret (set to null)
+                                'ClientSecret'); // you may obmit the client secret
 // for some reason we want to set S256 explicitly as Code Challenge Method
 // maybe your OP doesn’t announce support for PKCE in its discovery document
 $oidc->setCodeChallengeMethod('S256');
@@ -187,7 +187,7 @@ Generate a code coverage report (open html/index.html in a browser to view resul
 
 `XDEBUG_MODE=coverage ./vendor/bin/phpunit --coverage-html html tests/`
 
-Note: You may need to install Xdebug to make this work.
+Note: You may need to install [Xdebug](https://xdebug.org/) to make this work.
 
 ## Todo ##
 - Dynamic registration does not support registration auth tokens and endpoints
