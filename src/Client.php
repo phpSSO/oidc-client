@@ -252,7 +252,7 @@ class Client
      * @return bool
      * @throws ClientException
      */
-    public function authenticate() : bool {
+    public function authenticate(): bool {
 
         // protect against mix-up attacks
         // experimental feature, see https://tools.ietf.org/html/draft-ietf-oauth-iss-auth-resp-00
@@ -284,7 +284,7 @@ class Client
                 throw new ClientException('Got response: ' . $token_json->error);
             }
 
-            // Do an OpenID Connect session check
+            // Do a state check
             if ($_REQUEST['state'] !== $this->getState()) {
                 throw new ClientException('Unable to determine state');
             }
@@ -296,49 +296,18 @@ class Client
                 throw new ClientException('User did not authorize openid scope.');
             }
 
-            $claims = $this->decodeJWT($token_json->id_token, 1);
-
-            // Verify the signature
-            if ($this->canVerifySignatures()) {
-                if (!$this->getProviderConfigValue('jwks_uri')) {
-                    throw new ClientException ('Unable to verify signature due to no jwks_uri being defined');
-                }
-                if (!$this->verifyJWTsignature($token_json->id_token)) {
-                    throw new ClientException ('Unable to verify signature');
-                }
-            } else {
-                user_error('Warning: JWT signature verification unavailable.');
-            }
-
-            // Save the id token
-            $this->idToken = $token_json->id_token;
-
-            // Save the access token
-            $this->accessToken = $token_json->access_token;
-
-            // If this is a valid claim
-            if ($this->verifyJWTclaims($claims, $token_json->access_token)) {
-
-                // Clean up the session a little
-                $this->unsetNonce();
-
+            // handle id_token and access_token
+            if($this->handleTokens($token_json->id_token, $token_json->access_token)) {
                 // Save the full response
                 $this->tokenResponse = $token_json;
-
-                // Save the verified claims
-                $this->verifiedClaims = $claims;
 
                 // Save the refresh token, if we got one
                 if (isset($token_json->refresh_token)) {
                     $this->refreshToken = $token_json->refresh_token;
                 }
-
-                // Success!
-                return true;
-
             }
 
-            throw new ClientException ('Unable to verify JWT claims');
+            return true;
         }
 
         if ($this->allowImplicitFlow && isset($_REQUEST['id_token'])) {
@@ -350,7 +319,7 @@ class Client
                 $accessToken = $_REQUEST['access_token'];
             }
 
-            // Do an OpenID Connect session check
+            // Do a state check
             if ($_REQUEST['state'] !== $this->getState()) {
                 throw new ClientException('Unable to determine state');
             }
@@ -358,43 +327,7 @@ class Client
             // Cleanup state
             $this->unsetState();
 
-            $claims = $this->decodeJWT($id_token, 1);
-
-            // Verify the signature
-            if ($this->canVerifySignatures()) {
-                if (!$this->getProviderConfigValue('jwks_uri')) {
-                    throw new ClientException ('Unable to verify signature due to no jwks_uri being defined');
-                }
-                if (!$this->verifyJWTsignature($id_token)) {
-                    throw new ClientException ('Unable to verify signature');
-                }
-            } else {
-                user_error('Warning: JWT signature verification unavailable.');
-            }
-
-            // Save the id token
-            $this->idToken = $id_token;
-
-            // If this is a valid claim
-            if ($this->verifyJWTclaims($claims, $accessToken)) {
-
-                // Clean up the session a little
-                $this->unsetNonce();
-
-                // Save the verified claims
-                $this->verifiedClaims = $claims;
-
-                // Save the access token
-                if ($accessToken) {
-                    $this->accessToken = $accessToken;
-                }
-
-                // Success!
-                return true;
-
-            }
-
-            throw new ClientException ('Unable to verify JWT claims');
+            return $this->handleTokens($id_token, $accessToken);
         }
 
         $this->requestAuthorization();
@@ -402,18 +335,68 @@ class Client
     }
 
     /**
+     * Verifies id_token und access_token and sets OIDC claims, read from verified id_token.
+     *
+     * @param string $idToken
+     * @param string|null $accessToken
+     * @return bool
+     */
+    protected function handleTokens(string $idToken, ?string $accessToken = null): bool
+    {
+        $claims = $this->decodeJWT($idToken, 1);
+
+        // Verify the signature
+        if ($this->canVerifySignatures()) {
+            if (!$this->getProviderConfigValue('jwks_uri')) {
+                throw new ClientException('Unable to verify signature due to no jwks_uri being defined');
+            }
+            if (!$this->verifyJWTsignature($idToken)) {
+                throw new ClientException('Unable to verify signature');
+            }
+        } else {
+            user_error('Warning: JWT signature verification unavailable.');
+        }
+
+        // Save the id token
+        $this->idToken = $idToken;
+
+        // If this is a valid claim
+        if ($this->verifyJWTclaims($claims, $accessToken)) {
+
+            // Clean up the session a little
+            $this->unsetNonce();
+
+            // Save the verified claims
+            $this->verifiedClaims = $claims;
+
+            // Save the access token
+            if ($accessToken) {
+                $this->accessToken = $accessToken;
+            }
+
+            // Success!
+            return true;
+        }
+
+        throw new ClientException('Unable to verify JWT claims');
+    }
+
+    /**
      * It calls the end-session endpoint of the OpenID Connect provider to notify the OpenID
      * Connect provider that the end-user has logged out of the relying party site
      * (the client application).
      *
-     * @param string $idToken ID token (obtained at login)
+     * @param string|null $idToken ID token (obtained at login). In case this parameter is empty, it must be set with setIdToken().
      * @param string|null $redirect URL to which the RP is requesting that the End-User's User Agent
      * be redirected after a logout has been performed. The value MUST have been previously
      * registered with the OP. Value can be null.
      *
      * @throws ProviderException
      */
-    public function signOut(string $idToken, ?string $redirect): void {
+    public function signOut(?string $idToken, ?string $redirect): void {
+        if($idToken == null) {
+            $idToken = $this->idToken;
+        }
         $signout_endpoint = $this->getProviderConfigValue('end_session_endpoint');
 
         $signout_params = null;
@@ -1021,57 +1004,43 @@ class Client
     }
 
     /**
+     * Calls the User Info endpoint to get a list of claims about the user.
+     * List of standardized claims: https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
      *
-     * @param string|null $attribute optional
-     *
-     * Attribute        Type        Description
-     * user_id          string      REQUIRED Identifier for the End-User at the Issuer.
-     * name             string      End-User's full name in displayable form including all name parts, ordered according to End-User's locale and preferences.
-     * given_name       string      Given name or first name of the End-User.
-     * family_name      string      Surname or last name of the End-User.
-     * middle_name      string      Middle name of the End-User.
-     * nickname         string      Casual name of the End-User that may or may not be the same as the given_name. For instance, a nickname value of Mike might be returned alongside a given_name value of Michael.
-     * profile          string      URL of End-User's profile page.
-     * picture          string      URL of the End-User's profile picture.
-     * website          string      URL of End-User's web page or blog.
-     * email            string      The End-User's preferred e-mail address.
-     * verified         boolean     True if the End-User's e-mail address has been verified; otherwise false.
-     * gender           string      The End-User's gender: Values defined by this specification are female and male. Other values MAY be used when neither of the defined values are applicable.
-     * birthday         string      The End-User's birthday, represented as a date string in MM/DD/YYYY format. The year MAY be 0000, indicating that it is omitted.
-     * zoneinfo         string      String from zoneinfo [zoneinfo] time zone database. For example, Europe/Paris or America/Los_Angeles.
-     * locale           string      The End-User's locale, represented as a BCP47 [RFC5646] language tag. This is typically an ISO 639-1 Alpha-2 [ISO639‑1] language code in lowercase and an ISO 3166-1 Alpha-2 [ISO3166‑1] country code in uppercase, separated by a dash. For example, en-US or fr-CA. As a compatibility note, some implementations have used an underscore as the separator rather than a dash, for example, en_US; Implementations MAY choose to accept this locale syntax as well.
-     * phone_number     string      The End-User's preferred telephone number. E.164 [E.164] is RECOMMENDED as the format of this Claim. For example, +1 (425) 555-1212 or +56 (2) 687 2400.
-     * address          JSON object The End-User's preferred address. The value of the address member is a JSON [RFC4627] structure containing some or all of the members defined in Section 2.4.2.1.
-     * updated_time     string      Time the End-User's information was last updated, represented as a RFC 3339 [RFC3339] datetime. For example, 2011-01-03T23:58:42+0000.
+     * @param string|null $claim optional: only return the specified claim
      *
      * @return mixed
      *
      * @throws ClientException
      */
-    public function requestUserInfo($attribute = null) {
+    public function requestUserInfo(?string $claim = null)
+    {
+        if (empty($this->userInfo)) {
+            $user_info_endpoint = $this->getProviderConfigValue('userinfo_endpoint');
+            $headers = [];
 
-        $user_info_endpoint = $this->getProviderConfigValue('userinfo_endpoint');
-        $schema = 'openid';
+            // The accessToken has to be sent in the Authorization header.
+            // Accept json to indicate response type
+            $headers['Authorization'] = 'Bearer '.$this->accessToken;
+            $headers['Accept'] = 'application/json';
 
-        $user_info_endpoint .= '?schema=' . $schema;
+            $user_json = json_decode($this->fetchURL($user_info_endpoint, null, $headers));
+            if ($this->getResponseCode() <> 200) {
+                throw new ClientException('The communication to retrieve user data has failed with status code ' . $this->getResponseCode());
+            }
+            if (!isset($user_json->sub) || $user_json->sub !== $this->getVerifiedClaims('sub')) {
+                throw new ClientException('The claim "sub" in the userinfo response does not match the one in the ID Token');
+            }
 
-        // The accessToken has to be sent in the Authorization header.
-        // Accept json to indicate response type
-        $headers["Authorization"] = "Bearer {$this->accessToken}";
-        $headers['Accept'] = 'application/json';
-
-        $user_json = json_decode($this->fetchURL($user_info_endpoint,null,$headers));
-        if ($this->getResponseCode() <> 200) {
-            throw new ClientException('The communication to retrieve user data has failed with status code '.$this->getResponseCode());
+            $this->userInfo = $user_json;
         }
-        $this->userInfo = $user_json;
 
-        if($attribute === null) {
+        if ($claim === null) {
             return $this->userInfo;
         }
 
-        if (property_exists($this->userInfo, $attribute)) {
-            return $this->userInfo->$attribute;
+        if (property_exists($this->userInfo, $claim)) {
+            return $this->userInfo->$claim;
         }
 
         return null;
@@ -1079,7 +1048,7 @@ class Client
 
     /**
      *
-     * @param string|null $attribute optional
+     * @param string|null $attribute optional: Get specific claim
      *
      * Attribute        Type    Description
      * exp              int     Expires at
@@ -1096,14 +1065,14 @@ class Client
      * @return mixed
      *
      */
-    public function getVerifiedClaims($attribute = null) {
+    public function getVerifiedClaims($claim = null) {
 
-        if($attribute === null) {
+        if($claim === null) {
             return $this->verifiedClaims;
         }
 
-        if (property_exists($this->verifiedClaims, $attribute)) {
-            return $this->verifiedClaims->$attribute;
+        if (property_exists($this->verifiedClaims, $claim)) {
+            return $this->verifiedClaims->$claim;
         }
 
         return null;
@@ -1137,9 +1106,10 @@ class Client
             $headers['Content-Type'] = $content_type;
 
             $options['body'] = $post_body;
-            if(count($headers) > 0) {
-                $options['headers'] = $headers;
-            }
+        }
+
+        if(count($headers) > 0) {
+            $options['headers'] = $headers;
         }
         
         $response = $client->request($method, $url, $options);
@@ -1496,6 +1466,15 @@ class Client
      */
     public function getIdToken() : string {
         return $this->idToken;
+    }
+
+    /**
+     * @param string $idToken
+     */
+    public function setIdToken(string $idToken) : void {
+        $this->idToken = $idToken;
+        // needed to read verified claims from id_token
+        $this->handleTokens($idToken);
     }
 
     /**
