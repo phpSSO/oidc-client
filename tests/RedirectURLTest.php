@@ -25,60 +25,64 @@ class RedirectURLTest extends TestBaseCase
         ];
     }
 
-    public function testRedirectURLHttp8080(): void
+    /**
+     * @dataProvider providesHeaders
+     */
+    public function testRedirectURL(array $request_headers, string $expectedRedirectUri): void
     {
+        $_SERVER = array_merge($_SERVER, $request_headers);
         $redirectUrl = $this->client->getRedirectURL();
-        self::assertEquals('http://localhost:8080/test.php', $redirectUrl);
+        self::assertEquals($expectedRedirectUri, $redirectUrl);
     }
 
-    public function testRedirectURLHttp80(): void
+    public function providesHeaders()
     {
-        $_SERVER['SERVER_PORT'] = '80';
-        $_SERVER['HTTP_HOST'] = 'localhost';
-
-        $redirectUrl = $this->client->getRedirectURL();
-        self::assertEquals('http://localhost/test.php', $redirectUrl);
-    }
-
-    public function testRedirectURLQueryParameter(): void
-    {
-        $_SERVER['SERVER_PORT'] = '80';
-        $_SERVER['HTTP_HOST'] = 'localhost';
-        $_SERVER['REQUEST_URI'] = '/test.php?param1=abc';
-        $_SERVER['QUERY_STRING'] = 'param1=abc';
-
-        $redirectUrl = $this->client->getRedirectURL();
-        self::assertEquals('http://localhost/test.php', $redirectUrl);
-    }
-
-    public function testRedirectURLHttpsRequestScheme(): void
-    {
-        $_SERVER['SERVER_PORT'] = '443';
-        $_SERVER['HTTP_HOST'] = 'localhost:443';
-        $_SERVER['REQUEST_SCHEME'] = 'https';
-
-        $redirectUrl = $this->client->getRedirectURL();
-        self::assertEquals('https://localhost/test.php', $redirectUrl);
-    }
-
-    public function testRedirectURLHttpsXForwardedProto(): void
-    {
-        $_SERVER['SERVER_PORT'] = '80';
-        $_SERVER['HTTP_HOST'] = 'localhost:80';
-        $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
-
-        $redirectUrl = $this->client->getRedirectURL();
-        self::assertEquals('https://localhost/test.php', $redirectUrl);
-    }
-
-    public function testRedirectURLHttpsHeader(): void
-    {
-        $_SERVER['SERVER_PORT'] = '443';
-        $_SERVER['HTTP_HOST'] = 'localhost:443';
-        $_SERVER['HTTPS'] = 'on';
-
-        $redirectUrl = $this->client->getRedirectURL();
-        self::assertEquals('https://localhost/test.php', $redirectUrl);
+        return [
+            [
+                [],
+                'http://localhost:8080/test.php'
+            ],
+            [
+                [
+                    'SERVER_PORT' => '80',
+                    'HTTP_HOST' => 'localhost'
+                ],
+                'http://localhost/test.php'
+            ],
+            [
+                [
+                    'SERVER_PORT' => '80',
+                    'HTTP_HOST' => 'localhost',
+                    'REQUEST_URI' => '/test.php?param1=abc',
+                    'QUERY_STRING' => 'param1=abc'
+                ],
+                'http://localhost/test.php'
+            ],
+            [
+                [
+                    'SERVER_PORT' => '443',
+                    'HTTP_HOST' => 'localhost',
+                    'REQUEST_SCHEME' => 'https'
+                ],
+                'https://localhost/test.php'
+            ],
+            [
+                [
+                    'SERVER_PORT' => '80',
+                    'HTTP_HOST' => 'localhost',
+                    'REQUEST_SCHEME' => 'https'
+                ],
+                'https://localhost/test.php'
+            ],
+            [
+                [
+                    'SERVER_PORT' => '443',
+                    'HTTP_HOST' => 'localhost',
+                    'HTTPS' => 'on'
+                ],
+                'https://localhost/test.php'
+            ]
+        ];
     }
 
     protected function tearDown(): void
