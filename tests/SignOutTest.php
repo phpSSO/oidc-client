@@ -19,11 +19,11 @@ class SignOutTest extends TestBaseCase
             // check required URL parameters
             parse_str($parts[1], $parameters);
             $this->assertEquals(2, count($parameters));
-            $this->assertEquals($this->id_token, $parameters['id_token_hint']);
+            $this->assertEquals($this->idToken, $parameters['id_token_hint']);
             $this->assertEquals($this->post_logout_redirect_uri, $parameters['post_logout_redirect_uri']);
         }));
         $client->setProviderURL('https://example.org/');
-        $client->signOut($this->id_token, $this->post_logout_redirect_uri);
+        $client->signOut($this->idToken, $this->post_logout_redirect_uri);
     }
 
     public function testSignOutWithoutPostLogoutRedirectUri(): void
@@ -39,10 +39,10 @@ class SignOutTest extends TestBaseCase
             // check required URL parameters
             parse_str($parts[1], $parameters);
             $this->assertEquals(1, count($parameters));
-            $this->assertEquals($this->id_token, $parameters['id_token_hint']);
+            $this->assertEquals($this->idToken, $parameters['id_token_hint']);
         }));
         $client->setProviderURL('https://example.org/');
-        $client->signOut($this->id_token, null);
+        $client->signOut($this->idToken, null);
     }
 
     public function testSignOutWithoutEndsessionEndpoint(): void
@@ -56,6 +56,6 @@ class SignOutTest extends TestBaseCase
         $client->method('fetchUrl')->willReturn(json_encode($config));
         $client->setProviderURL('https://example.org/');
         $this->expectException('\JuliusPC\OpenIDConnect\Exceptions\ProviderException');
-        $client->signOut($this->id_token, null);
+        $client->signOut($this->idToken, null);
     }
 }
