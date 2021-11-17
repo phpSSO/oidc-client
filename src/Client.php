@@ -1773,16 +1773,16 @@ class Client
     }
 
     /**
-     * @param \GuzzleHttp\Client $httpClient HTTP client this class should use to make requests
+     * @param \GuzzleHttp\ClientInterface $httpClient HTTP client this class should use to make requests
      */
-    public function setHttpClient(\GuzzleHttp\Client $httpClient) {
+    public function setHttpClient(\GuzzleHttp\ClientInterface $httpClient) {
         $this->httpClient = $httpClient;
     }
 
     /**
-     * @return \GuzzleHttp\Client
+     * @return \GuzzleHttp\ClientInterface
      */
-    public function getHttpClient() : \GuzzleHttp\Client {
+    public function getHttpClient() : \GuzzleHttp\ClientInterface {
 
         if (!isset($this->httpClient))  {
 
