@@ -70,7 +70,7 @@ class Client
     /**
      * @var \GuzzleHttp\Client HTTP client used to make Requests
      */
-    private \GuzzleHttp\Client $httpClient;
+    private $httpClient;
 
     /**
      * @var string full system path to the SSL certificate
@@ -80,7 +80,7 @@ class Client
     /**
      * @var bool Verify SSL peer on transactions
      */
-    private bool $verifyPeer = true;
+    private $verifyPeer = true;
 
     /**
      * @var string if we acquire an access token it will be stored here
@@ -161,7 +161,7 @@ class Client
     /**
      * @var object holds verified jwt claims
      */
-    protected object $verifiedClaims;
+    protected $verifiedClaims;
 
     /**
      * @var callable validator function for issuer claim
@@ -171,7 +171,7 @@ class Client
     /**
      * @var bool Allow OAuth 2 implicit flow; see http://openid.net/specs/openid-connect-core-1_0.html#ImplicitFlowAuth
      */
-    private bool $allowImplicitFlow = false;
+    private $allowImplicitFlow = false;
 
     /**
      * @var string
@@ -181,7 +181,7 @@ class Client
     /**
      * @var int defines which URL-encoding http_build_query() uses
      */
-    protected int $encType = PHP_QUERY_RFC1738;
+    protected $encType = PHP_QUERY_RFC1738;
 
     /**
      * @var string holds code challenge method for PKCE mode
@@ -197,12 +197,12 @@ class Client
     /**
      * @var bool true if PKCE is disabled
      */
-    private bool $unsafeDisablePkce = false;
+    private $unsafeDisablePkce = false;
 
     /**
      * @var bool true if nonce is disabled
      */
-    private bool $unsafeDisableNonce = false;
+    private $unsafeDisableNonce = false;
 
     /**
      * @param $provider_url string optional
