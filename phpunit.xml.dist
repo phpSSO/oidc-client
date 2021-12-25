@@ -12,5 +12,9 @@
     <include>
       <directory suffix=".php">src</directory>
     </include>
+    <report>
+      <text outputFile="phpunit/coverage.txt" showUncoveredFiles="true" showOnlySummary="false"/>
+      <xml outputDirectory="phpunit/xml-coverage"/>
+    </report>
   </coverage>
 </phpunit>
