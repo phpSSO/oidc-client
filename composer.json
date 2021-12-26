@@ -43,5 +43,11 @@
     "psr-4": {
       "JuliusPC\\OpenIDConnect\\Tests\\": "tests/"
     }
+  },
+  "scripts": {
+    "test": [
+        "Composer\\Config::disableProcessTimeout",
+        "vendor/bin/phpunit --verbose"
+    ]
   }
 }

@@ -1,0 +1,83 @@
+name: PHP Testing
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      # Normally matrix operations can cancel each other if one fails.
+      # Because we are testing different versions, this does not make sense,
+      # so we will disable it.
+      fail-fast: false
+      matrix:
+        # See https://github.com/shivammathur/setup-php#tada-php-support for more information about available versions.
+        # The security-updates flag is taken from https://www.php.net/supported-versions.php, but specific vendors might
+        # support way older versions by backporting security fixes (like Canonical).
+        php-version:
+          - number: "7.3"
+            security-updates: false
+            prerelease: false
+          - number: "7.4"
+            security-updates: true
+            prerelease: false
+          - number: "8.0"
+            security-updates: true
+            prerelease: false
+          - number: "8.1"
+            security-updates: true
+            prerelease: false
+          - number: "8.2"
+            security-updates: true
+            prerelease: true
+
+    # Allow prerelase CI builds to fail.
+    continue-on-error: ${{ matrix.php-version.prerelease }}
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Install PHP version
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version.number }}
+        tools: composer:v2
+        coverage: xdebug
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate --strict
+
+    - name: Setup problem matchers for PHP
+      run: echo "::add-matcher::${{ runner.tool_cache }}/php.json"
+
+    - name: Setup problem matchers for PHPUnit
+      run: echo "::add-matcher::${{ runner.tool_cache }}/phpunit.json"
+
+    - name: Get composer cache directory
+      id: composer-cache
+      run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+
+    - name: Cache dependencies
+      uses: actions/cache@v2
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        # This will cache base on the composer json, because right now we do not commit the composer lockfile.
+        # Should we do that in the future see the following link on how to cache with the lockfile:
+        # https://github.com/marketplace/actions/setup-php-action#cache-composer-dependencies
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+        restore-keys: ${{ runner.os }}-composer-
+
+    - name: Install dependencies
+      if: ${{ !matrix.php-version.prerelease }}
+      run: composer install --prefer-dist --no-progress
+
+    # PHPUnit uses prophecy which does not like to declare version numbers of prereleases they dont support yet.
+    # We need to ignore the requirement if we want to actually run the test.
+    # See: https://github.com/phpspec/prophecy/pull/533#issuecomment-895855191
+    - name: Install dependencies (without php version requirements)
+      if: ${{ matrix.php-version.prerelease }}
+      run: composer install --prefer-dist --no-progress --ignore-platform-req=php
+
+    - name: Run test suite
+      run: composer run-script test

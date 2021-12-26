@@ -46,7 +46,7 @@ class Client
     /**
      * @var ClientInterface HTTP client used to make Requests
      */
-    private \GuzzleHttp\Client $httpClient;
+    private $httpClient;
 
     /**
      * @var StateStore holds the client's session state
@@ -86,12 +86,12 @@ class Client
     /**
      * @var object holds verified jwt claims
      */
-    protected object $verifiedClaims;
+    protected $verifiedClaims;
 
     /**
      * @var int defines which URL-encoding http_build_query() uses
      */
-    protected int $encType = PHP_QUERY_RFC1738;
+    protected $encType = PHP_QUERY_RFC1738;
 
     /**
      * @var array holds PKCE supported algorithms

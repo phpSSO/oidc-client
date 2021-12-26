@@ -6,7 +6,10 @@ use JuliusPC\OpenIDConnect\Client;
 
 class RedirectURLTest extends TestBaseCase
 {
-    private Client $client;
+    /**
+     * @var Client
+     */
+    private $client;
 
     protected function setUp(): void
     {
